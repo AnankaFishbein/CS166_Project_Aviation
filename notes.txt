@@ -1,0 +1,29 @@
+Airport {AirportCode PK, City, Name}
+
+Flight {FlightNo PK, OriginAirportCode FK→Airport, DestAirportCode FK→Airport}
+
+Stop {FlightNo PK FK→Flight, StopOrder PK, AirportCode FK→Airport, ETA, ETD}
+
+Plane {PlaneID PK, Make, Model, DateInService, Age⚙}
+
+FlightInstance {FlightNo PK FK→Flight, FlightDate PK, PlaneID FK→Plane,
+                SchedDep, SchedArr, ActDep, ActArr, SeatsSold⚙, SeatsAvail⚙}
+
+Passenger {PasPasengerID PK, FirstName, LastName, Gender, DOB, Address, 
+           Phone, Zip, IsBookingContact (Y/N)}
+
+Reservation {ResNo PK, FlightNo FK→Flight, FlightDate FK→FlightInstance,
+             BookingDate, Status}
+
+ReservationPassenger {ResNo PK FK→Reservation, PassengerID PK FK→Passenger,
+                      SeatNo, WaitlistPos}
+
+Technician {TechID PK, Name, Phone}
+
+Pilot {PilotID PK, Name, Phone}
+
+MaintenanceRequest {RequestID PK, PilotID FK→Pilot, PlaneID FK→Plane,
+                    RequestDate, Description}
+
+Repair {RepairID PK, PlaneID FK→Plane, TechID FK→Technician,
+        RepairCode, RepairDate, RequestID FK→MaintenanceRequest (nullable)}
