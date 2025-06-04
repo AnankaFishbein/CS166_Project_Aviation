@@ -21,9 +21,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
 import java.lang.Math;
+
 
 /**
  * This class defines a simple embedded SQL utility class that is designed to
@@ -441,12 +443,15 @@ public static String LogIn(AirlineManagement esql) {
             case "1": // Customer
                 userTable = "Customer";
                 userIdCol = "CustomerID";
-                System.out.print("Customer First Name: ");
-                String firstName = in.readLine().trim();
-                System.out.print("Customer Last Name: ");
-                String lastName = in.readLine().trim();
-                System.out.print("Customer ID: ");
-                String customerId = in.readLine().trim();
+                // Prompt for first and last name(lengths 2-15 and 2-30 respectively)
+                String firstName = promptForValidFirstName(in);
+                if (firstName == null) return null; // handle too many invalid attempts
+                String lastName = promptForValidLastName(in);
+                if (lastName == null) return null;
+                // Prompt for customer ID
+                String customerId = promptForValidCustomerID(in);
+                if (customerId == null) return null;
+
                 String query = "SELECT CustomerID FROM Customer " +
                                "WHERE FirstName = '" + firstName + "' " +
                                "AND LastName = '" + lastName + "' " +
@@ -462,8 +467,10 @@ public static String LogIn(AirlineManagement esql) {
             case "2": // Pilot
                 userTable = "Pilot";
                 userIdCol = "PilotID";
-                System.out.print("Pilot Name: ");
-                loginName = in.readLine().trim();
+                // Prompt for full name (Pilot: "Holly Wood")
+               loginName = promptForValidFullName(in, "Pilot");
+                if (loginName == null) return null;
+
                 String queryPilot = "SELECT PilotID FROM Pilot WHERE Name = '" + loginName + "'";
                 List<List<String>> resultPilot = esql.executeQueryAndReturnResult(queryPilot);
                 if(resultPilot.size() > 0) {
@@ -476,8 +483,10 @@ public static String LogIn(AirlineManagement esql) {
             case "3": // Technician
                 userTable = "Technician";
                 userIdCol = "TechnicianID";
-                System.out.print("Tech Name: ");
-                loginName = in.readLine().trim();
+                // Prompt for full name (Technician: "Gina Moore")
+                loginName = promptForValidFullName(in, "Technician");
+                if (loginName == null) return null;
+
                 String queryTech = "SELECT TechnicianID FROM Technician WHERE Name = '" + loginName + "'";
                 List<List<String>> resultTech = esql.executeQueryAndReturnResult(queryTech);
                 if(resultTech.size() > 0) {
@@ -526,20 +535,31 @@ public static String LogIn(AirlineManagement esql) {
    /*
  * Shows total and sold seats for a given flight and date
  **/
-   public static void ViewFlightSeats(AirlineManagement esql) {
-      try {
-         System.out.print("Enter flight number: ");
-         int flightNumber = Integer.parseInt(in.readLine());
-         System.out.print("Enter flight date (yyyy-mm-dd): ");
-         String dateStr = in.readLine();
-         String query = "SELECT SeatsTotal, SeatsSold FROM FlightInstance " +
-                        "WHERE FlightNumber = " + flightNumber + 
-                        " AND FlightDate = DATE '" + dateStr + "'";
-         esql.executeQueryAndPrintResult(query);
-      } catch(Exception e) {
-         System.err.println(e.getMessage());
-      }
-   }//end ViewFlightSeats
+  public static void ViewFlightSeats(AirlineManagement esql) {
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        System.out.print("Enter flight number: ");
+        String flightNumber = in.readLine().trim();
+
+        String flightDate = promptForValidDate(in);
+        if (flightDate == null) {
+            // User failed too many times
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        String query = "SELECT SeatsTotal, SeatsSold FROM FlightInstance " +
+                       "WHERE FlightNumber = '" + flightNumber + "' " +
+                       "AND FlightDate = DATE '" + flightDate + "'";
+        int results = esql.executeQueryAndPrintResult(query);
+        if (results == 0) {
+            System.out.println("No seat information found for this flight and date.");
+        }
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}//end ViewFlightSeats
+
 
    /*
  * Shows departed/arrived on time for a given flight and date
@@ -593,15 +613,28 @@ public static String LogIn(AirlineManagement esql) {
    public static void SearchFlights(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter Departure City: ");
-        String depCity = in.readLine().trim();
-        System.out.print("Enter Arrival City: ");
-        String arrCity = in.readLine().trim();
-        System.out.print("Enter Date (yyyy-mm-dd): ");
-        String flightDate = in.readLine().trim();
+         // Use the promptForValidCity helper method to ensure valid input
+        String depCity = promptForValidCity(in, "Enter Departure City");
+         if (depCity == null) {
+            System.out.println("Returning to main menu.");
+            return;
+         }
+         String arrCity = promptForValidCity(in, "Enter Arrival City");
+         if (arrCity == null) {
+            System.out.println("Returning to main menu.");
+            return;
+         }
+
+        // Use the date validation helper
+        String flightDate = promptForValidDate(in);
+        if (flightDate == null) {
+            // User failed too many times
+            System.out.println("Returning to main menu.");
+            return;
+        }
 
         // Find matching flights for the date
-        String query = 
+        String query =
             "SELECT f.FlightNumber, fi.FlightDate, s.DepartureTime, s.ArrivalTime, fi.NumOfStops, " +
             "ROUND(100.0 * SUM(CASE WHEN fi.DepartedOnTime THEN 1 ELSE 0 END) / COUNT(*), 2) AS OnTimePercent " +
             "FROM Flight f " +
@@ -612,7 +645,10 @@ public static String LogIn(AirlineManagement esql) {
             "AND fi.FlightDate = DATE '" + flightDate + "' " +
             "GROUP BY f.FlightNumber, fi.FlightDate, s.DepartureTime, s.ArrivalTime, fi.NumOfStops";
 
-        esql.executeQueryAndPrintResult(query);
+        int results = esql.executeQueryAndPrintResult(query);
+        if (results == 0) {
+            System.out.println("No flights found for those criteria.");
+        }
 
     } catch(Exception e) {
         System.err.println(e.getMessage());
@@ -716,7 +752,190 @@ public static void AddRepairRecord(AirlineManagement esql) {
     }
 }
 
-  
+public static String promptForValidDate(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Enter Date (yyyy-mm-dd) [example: 2025-05-05]: ");
+        String input = in.readLine().trim();
+        // Regex: 2025-05-05 or 2026-12-31 etc.
+        if (input.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            String[] parts = input.split("-");
+            int year = Integer.parseInt(parts[0]);
+            int month = Integer.parseInt(parts[1]);
+            int day = Integer.parseInt(parts[2]);
+            if (year >= 2025 && year <= 2026) {
+                if (month >= 1 && month <= 12) {
+                    int[] daysInMonth = {31,28,31,30,31,30,31,31,30,31,30,31};
+                    // leap year check for February
+                    if (month == 2 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)) {
+                        daysInMonth[1] = 29;
+                    }
+                    if (day >= 1 && day <= daysInMonth[month-1]) {
+                        return input; // Valid date!
+                    }
+                }
+            }
+        }
+        System.out.println("Invalid date! Please use yyyy-mm-dd and a year between 2025 and 2026. Example: 2025-05-05");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null; // Should never reach here.
+}
+
+  public static String promptForValidCity(BufferedReader in, String prompt) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print(prompt + " (letters and spaces only, e.g. 'New York'): ");
+        String input = in.readLine().trim();
+        if (input.matches("[A-Za-z ]{2,15}")) {
+            // Optional: capitalize first letter of each word for consistency
+            String[] words = input.split("\\s+");
+            StringBuilder sb = new StringBuilder();
+            for (String w : words) {
+                if (!w.isEmpty()) {
+                    sb.append(Character.toUpperCase(w.charAt(0)));
+                    if (w.length() > 1) sb.append(w.substring(1).toLowerCase());
+                    sb.append(" ");
+                }
+            }
+            return sb.toString().trim();
+        }
+        System.out.println("Invalid city! Example: 'New York'. Please use only letters and spaces (2-50 chars).");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidFirstName(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Customer First Name: ");
+        String input = in.readLine().trim();
+        if (input.matches("[A-Za-z]{2,15}")) {
+            // Capitalize first letter
+            return Character.toUpperCase(input.charAt(0)) + input.substring(1).toLowerCase();
+        }
+        System.out.println("Invalid first name! Example: 'Kevin'. Use only letters (2-30 characters).");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+
+public static String promptForValidLastName(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Customer Last Name: ");
+        String input = in.readLine().trim();
+        if (input.matches("[A-Za-z]{2,30}")) {
+            // Capitalize first letter
+            return Character.toUpperCase(input.charAt(0)) + input.substring(1).toLowerCase();
+        }
+        System.out.println("Invalid last name! Example: 'Hall'. Use only letters (2-30 characters).");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidFullName(BufferedReader in, String role) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print(role + " Full Name (e.g. 'Jessica Wang'): ");
+        String input = in.readLine().trim();
+        // Accepts two words, each 2-30 letters, separated by space
+        if (input.matches("[A-Za-z]{2,30}\\s+[A-Za-z]{2,30}")) {
+            String[] parts = input.split("\\s+");
+            StringBuilder formatted = new StringBuilder();
+            for (String name : parts) {
+                formatted.append(Character.toUpperCase(name.charAt(0)));
+                if (name.length() > 1) formatted.append(name.substring(1).toLowerCase());
+                formatted.append(" ");
+            }
+            return formatted.toString().trim();
+        }
+        System.out.println("Invalid name! Please enter a first and last name, each 2–30 letters. Example: 'Gina Moore'");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidCustomerID(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Customer ID (1-999): ");
+        String input = in.readLine().trim();
+        if (input.matches("\\d{1,3}")) {
+            int id = Integer.parseInt(input);
+            if (id >= 1 && id <= 999) {
+                return String.valueOf(id);
+            }
+        }
+        System.out.println("Invalid Customer ID! Enter a positive integer between 1 and 999 (e.g., 4).");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidPilotID(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Pilot ID (P001–P999): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("P\\d{3}")) {
+            int num = Integer.parseInt(input.substring(1));
+            if (num >= 1 && num <= 999) {
+                // Optionally pad with leading zeros
+                return "P" + String.format("%03d", num);
+            }
+        }
+        System.out.println("Invalid Pilot ID! Use format P001–P999, e.g., P010.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidTechnicianID(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Technician ID (T001–T999): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("T\\d{3}")) {
+            int num = Integer.parseInt(input.substring(1));
+            if (num >= 1 && num <= 999) {
+                // Optionally pad with leading zeros
+                return "T" + String.format("%03d", num);
+            }
+        }
+        System.out.println("Invalid Technician ID! Use format T001–T999, e.g., T101.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
 
 
 }//end AirlineManagement
