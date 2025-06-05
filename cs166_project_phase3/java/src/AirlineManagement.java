@@ -78,7 +78,6 @@ public class AirlineManagement {
    public void executeUpdate (String sql) throws SQLException {
       // creates a statement object
       Statement stmt = this._connection.createStatement ();
-      B
 
       // issues the update instruction
       stmt.executeUpdate (sql);
@@ -103,7 +102,6 @@ public class AirlineManagement {
 
       // issues the query instruction
       ResultSet rs = stmt.executeQuery (query);
-      B
 
       /*
        ** obtains the metadata object for the returned result set.  The metadata
@@ -150,7 +148,6 @@ public class AirlineManagement {
 
       /*
        ** obtains the metadata object for the returned result set.  The metadata
-       B
        ** contains row and column info.
        */
       ResultSetMetaData rsmd = rs.getMetaData ();
