@@ -433,16 +433,16 @@ public class AirlineManagement {
 		if (firstName == null) return;
 		String lastName = promptForValidLastName(in);
 		if (lastName == null) return;
-		System.out.print("Enter Gender (M/F/O): ");
-		String gender = in.readLine().trim();
+		String gender = promptForValidGender(in);
+        if (gender == null) return;
 		String birth = promptForValidDate(in);
 		if (birth == null) return;
-		System.out.print("Enter Address: ");
-		String address = in.readLine().trim();
-		System.out.print("Enter Phone #: ");
-		String phoneNumber = in.readLine().trim();
-		System.out.print("Enter Zip Code: ");
-		String zip = in.readLine().trim();
+		String address = promptForValidAddress(in);
+        if (address == null) return;
+		String phoneNumber = promptForValidPhone(in);
+        if (phoneNumber == null) return;
+		String zip = promptForValidZip(in);
+        if (zip == null) return;
 
 		String getMaxId = "SELECT COALESCE(MAX(CustomerID), 0) FROM Customer";
 		List<List<String>> result = esql.executeQueryAndReturnResult(getMaxId);
@@ -451,7 +451,7 @@ public class AirlineManagement {
 		String insertCustomer = String.format(
 		   "INSERT INTO Customer (CustomerID, FirstName, LastName, Gender, DOB, Address, Phone, Zip) " + 
 		   "VALUES (%d, '%s', '%s', '%s', DATE '%s', '%s', '%s', '%s')",
-		   newId, firstName, lastName, gender, birth, address, phoneNumber, zip
+		    newId, firstName, lastName, gender, birth, address, phoneNumber, zip
 		);
 		esql.executeUpdate(insertCustomer);
 		System.out.println("Customer created with ID: " + newId);
@@ -463,8 +463,8 @@ public class AirlineManagement {
 	      int newPilotID = Integer.parseInt(pilotResult.get(0).get(0)) + 1;
 	      String pilotId = String.format("P%03d", newPilotID);
 
-	      System.out.print("Enter Pilot Name: ");
-	      String pilotName = in.readLine().trim();
+          String pilotName = promptForValidFullName(in, "Pilot");
+          if (pilotName == null) return;
 
 	      String insertPilot = String.format(
 		  "INSERT INTO Pilot (PilotID, Name) VALUES ('%s', '%s')", 
@@ -480,8 +480,9 @@ public class AirlineManagement {
 	     int newTechID = Integer.parseInt(techResult.get(0).get(0)) + 1;
 	     String techId = String.format("T%03d", newTechID);
 
-	     System.out.print("Enter Technician Name: ");
-	     String techName = in.readLine().trim();
+         String techName = promptForValidFullName(in, "Technician");
+         if (techName == null) return;
+
 	     String insertTechnician = String.format(
 	 	 "INSERT INTO Technician (TechnicianID, Name) VALUES ('%s', '%s')",
 	         techId, techName
@@ -1207,6 +1208,77 @@ public static String promptForValidFlightNumber(BufferedReader in) throws IOExce
     }
     return null;
 }
+
+public static String promptForValidGender(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Gender (M/F/O): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.equals("M") || input.equals("F") || input.equals("O")) {
+            return input;
+        }
+        System.out.println("Invalid gender! Enter M, F, or O only.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidPhone(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Phone # (format: 123-456-7890): ");
+        String input = in.readLine().trim();
+        if (input.matches("\\d{3}-\\d{3}-\\d{4}")) {
+            return input;
+        }
+        System.out.println("Invalid phone number! Use format: 123-456-7890.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidZip(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Zip Code (5 digits): ");
+        String input = in.readLine().trim();
+        if (input.matches("\\d{5}")) {
+            return input;
+        }
+        System.out.println("Invalid zip code! Use exactly 5 digits, e.g., 92507.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidAddress(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Address: ");
+        String input = in.readLine().trim();
+        if (input.length() >= 5 && input.length() <= 100 &&
+            input.matches("[A-Za-z0-9.,'\\- ]+")) {
+            return input;
+        }
+        System.out.println("Invalid address! Use letters, numbers, comma, dot, dash, and spaces. 5–100 chars.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+
 
 }//end AirlineManagement
 
