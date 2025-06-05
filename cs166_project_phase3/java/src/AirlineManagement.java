@@ -328,7 +328,7 @@ public class AirlineManagement {
          System.out.println("7. View Plane Info");
          System.out.println("8. View Repairs By Technician");
          System.out.println("9. View Repairs For Plane by Date Range");
-        //  System.out.println("10. View View Reservation Details");
+         System.out.println("10. View Flight Stats by Date Range");
          // ...more management options as needed...
       }
       if (role.equalsIgnoreCase("Customer")) {
@@ -360,7 +360,7 @@ public class AirlineManagement {
          case 7: if (role.equalsIgnoreCase("Manager")) ViewPlaneInfo(esql); else notAuthorized(); break;
          case 8: if (role.equalsIgnoreCase("Manager")) ViewRepairsByTechnician(esql); else notAuthorized(); break;
          case 9: if (role.equalsIgnoreCase("Manager")) ViewRepairsForPlaneInRange(esql); else notAuthorized(); break;
-        //  case 10: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+         case 10: if (role.equalsIgnoreCase("Manager")) ViewFlightStatsInRange(esql); else notAuthorized(); break;
          // Add more management functions as needed
 
          // Customer
@@ -1005,6 +1005,46 @@ public static void ViewPlaneInfo(AirlineManagement esql) {
             for (List<String> row : result) {
                 System.out.printf("| %-11s | %-10s |\n", row.get(0), row.get(1));
             }
+        }
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}
+
+public static void ViewFlightStatsInRange(AirlineManagement esql) {
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+        String flightNum = promptForValidFlightNumber(in);
+        if (flightNum == null) return;
+
+        System.out.println("Enter start date of range:");
+        String startDate = promptForValidDate(in);
+        if (startDate == null) return;
+
+        System.out.println("Enter end date of range:");
+        String endDate = promptForValidDate(in);
+        if (endDate == null) return;
+
+        String query =
+            "SELECT COUNT(CASE WHEN DepartedOnTime THEN 1 END) AS NumDeparted, " +
+            "       COUNT(CASE WHEN ArrivedOnTime THEN 1 END) AS NumArrived, " +
+            "       SUM(SeatsSold) AS TotalSold, " +
+            "       SUM(SeatsTotal - SeatsSold) AS TotalUnsold " +
+            "FROM FlightInstance " +
+            "WHERE FlightNumber = '" + flightNum + "' " +
+            "  AND FlightDate BETWEEN DATE '" + startDate + "' AND DATE '" + endDate + "'";
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+        if (result.size() == 0 || (result.get(0).get(0) == null && result.get(0).get(1) == null)) {
+            System.out.println("No statistics found for flight " + flightNum + " in the given range.");
+        } else {
+            List<String> row = result.get(0);
+            System.out.println("Flight Statistics for " + flightNum + " (" + startDate + " to " + endDate + "):");
+            System.out.println("Number of days departed on time:     " + (row.get(0) == null ? "0" : row.get(0)));
+            System.out.println("Number of days arrived on time:      " + (row.get(1) == null ? "0" : row.get(1)));
+            System.out.println("Total tickets sold:          " + (row.get(2) == null ? "0" : row.get(2)));
+            System.out.println("Total tickets unsold:        " + (row.get(3) == null ? "0" : row.get(3)));
         }
     } catch(Exception e) {
         System.err.println(e.getMessage());
