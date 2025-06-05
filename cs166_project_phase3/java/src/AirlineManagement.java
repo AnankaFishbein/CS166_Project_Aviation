@@ -895,8 +895,16 @@ public static String LogIn(AirlineManagement esql) {
 	}
 	else {
 	   for (List<String> row : result) {
-	       System.out.printf("Name: %s %s | Gender: %s | DOB %s\n", row.get(0), row.get(1), row.get(2), row.get(3));
-	       System.out.printf("Address: %s | Phone: %s | Zip: %s\n\n", row.get(4), row.get(5), row.get(6));
+	       System.out.println("==============================");
+	       System.out.println("Reservation " + reservationID);
+	       System.out.println("==============================");
+	       System.out.println("Name: " + row.get(0) + " " + row.get(1));
+	       System.out.println("Gender: " + row.get(2));
+	       System.out.println("Date of Birth: " + row.get(3));
+	       System.out.println("Address: " + row.get(4));
+	       System.out.println("Phone: " + row.get(5));
+	       System.out.println("Zip Code: " + row.get(6));
+	       System.out.println();
 	   }
 	}
     } catch (Exception e) {
@@ -920,9 +928,11 @@ public static String LogIn(AirlineManagement esql) {
 	   System.out.println("Entered Plane was not found.");
 	}
 	else {
-	   List<String> row = result.get(0);
-	   System.out.printf("Make: %s | Model: %s | Age: %s years| Last Repair: %s\n",
-	       row.get(0), row.get(1), row.get(2), row.get(3));
+	  System.out.printf("| %-12s | %-12s | %-6s | %-16s |\n", "Make", "Model", "Year", "Last Repair Date");
+	  for (List<String> row : result) {
+	      System.out.printf("| %-12s | %-12s | %-6s | %-16s |\n",
+	      row.get(0), row.get(1), row.get(2), row.get(3));
+	  }
 	}
     } catch (Exception e) {
 	   System.err.println("Error retrieving plane info: " + e.getMessage());
@@ -932,7 +942,8 @@ public static String LogIn(AirlineManagement esql) {
    public static void ViewTechnicianRepairs(AirlineManagement esql) {
     try {
 	System.out.print("Enter a Technician ID: "); 
-	String technicianID = in.readLine().trim().toUpperCase();
+	String technicianID = promptForValidTechnicianID(in);
+	if (technicianID == null) return;
 
 	String query = String.format(
 	   "SELECT RepairID, PlaneID, RepairCode, RepairDate " +
@@ -1133,7 +1144,8 @@ public static void AddRepairRecord(AirlineManagement esql) {
 public static void ViewPilotRequests(AirlineManagement esql) {
     try {
 	System.out.print("Please enter a Pilot ID: ");
-	String pilotId = in.readLine().trim().toUpperCase();
+	String pilotId = promptForValidPilotID(in);
+	if (pilotId == null) return;
 
 	String query = String.format(
 		       	"SELECT RequestID, PlaneID, RepairCode, RequestDate " +
@@ -1150,9 +1162,9 @@ public static void ViewPilotRequests(AirlineManagement esql) {
 	}
 	else {
 	   System.out.println("Maintenance Requests for Pilot " + pilotId + ":");
-	   System.out.printf("%-12s $-10s $-15s %-12s\n", "RequestID", "PlaneID", "RepairCode", "RequestDate");
+	   System.out.printf("%-12s %-10s %-15s %-12s\n", "RequestID", "PlaneID", "RepairCode", "RequestDate");
 	   for (List<String> row : result) {
-	        System.out.printf("%-12s %-10s %-15s %-12s\n",
+	        System.out.printf("| %-12s  | %-10s  | %-15s  | %-12s |\n",
 		row.get(0), row.get(1), row.get(2), row.get(3));
 	   }
 	}
@@ -1367,7 +1379,11 @@ public static String promptForValidFlightNumber(BufferedReader in) throws IOExce
 public static void FindTicketCost(AirlineManagement esql) {
     try {
 	System.out.print("Please enter a Flight Number: ");
-	String flightNum = in.readLine().trim();
+	String flightNum = promptForValidFlightNumber(in);
+	if (flightNum == null) {
+	   System.out.println("Returning to main menu.");
+	   return;
+	}
 
 	String query = String.format(
 	    "SELECT TicketCost FROM FlightInstance WHERE FlightNumber = '%s' LIMIT 1",
@@ -1390,7 +1406,11 @@ public static void FindTicketCost(AirlineManagement esql) {
 public static void FindPlaneType(AirlineManagement esql) {
     try {
 	System.out.print("Please enter a Flight Number: ");
-	String flightNum = in.readLine().trim();
+	String flightNum = promptForValidFlightNumber(in);
+	if (flightNum == null) {
+	   System.out.println("Returning to main menu.");
+	   return;
+	}
 
 	String query = String.format(
 	    "SELECT p.Make, p.Model FROM Flight f JOIN Plane p ON f.PlaneID = p.PlaneID " +
