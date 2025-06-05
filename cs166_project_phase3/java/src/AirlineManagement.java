@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
 import java.lang.Math;
@@ -91,6 +92,7 @@ public class AirlineManagement {
     * standard out.
     *
     * @param query the input query string
+    * B
     * @return the number of rows returned
     * @throws java.sql.SQLException when failed to execute the query
     */
@@ -413,7 +415,87 @@ public class AirlineManagement {
    /*
     * Creates a new user
     **/
-   public static void CreateUser(AirlineManagement esql){
+   public static void CreateUser(AirlineManagement esql) {
+     try {
+	BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+	System.out.println("Select user type:");
+	System.out.println("1. Customer");
+	System.out.println("2. Pilot");
+	System.out.println("3. Technician");
+	System.out.println("Enter choice: ");
+	String choice = in.readLine().trim();
+
+	switch(choice) {
+	   case "1":
+		String firstName = promptForValidFirstName(in);
+		if (firstName == null) return;
+		String lastName = promptForValidLastName(in);
+		if (lastName == null) return;
+		System.out.print("Enter Gender (M/F/O): ");
+		String gender = in.readLine().trim();
+		String birth = promptForValidDate(in);
+		if (birth == null) return;
+		System.out.print("Enter Address: ");
+		String address = in.readLine().trim();
+		System.out.print("Enter Phone #: ");
+		String phoneNumber = in.readLine().trim();
+		System.out.print("Enter Zip Code: ");
+		String zip = in.readLine().trim();
+
+		String getMaxId = "SELECT COALESCE(MAX(CustomerID), 0) FROM Customer";
+		List<List<String>> result = esql.executeQueryAndReturnResult(getMaxId);
+		int newId = Integer.parseInt(result.get(0).get(0)) + 1;
+
+		String insertCustomer = String.format(
+		   "INSERT INTO Customer (CustomerID, FirstName, LastName, Gender, DOB, Address, Phone, Zip) " + 
+		   "VALUES (%d, '%s', '%s', '%s', DATE '%s', '%s', '%s', '%s')",
+		   newId, firstName, lastName, gender, birth, address, phoneNumber, zip
+		);
+		esql.executeUpdate(insertCustomer);
+		System.out.println("Customer created with ID: " + newId);
+		break;
+
+	 case "2":
+	      String getMaxPilot = "SELECT COALESCE(MAX(CAST(SUBSTRING(PilotID, 2) AS INTEGER)), 0) FROM Pilot";
+	      List<List<String>> pilotResult = esql.executeQueryAndReturnResult(getMaxPilot);
+	      int newPilotID = Integer.parseInt(pilotResult.get(0).get(0)) + 1;
+	      String pilotId = String.format("P%03d", newPilotID);
+
+	      System.out.print("Enter Pilot Name: ");
+	      String pilotName = in.readLine().trim();
+
+	      String insertPilot = String.format(
+		  "INSERT INTO Pilot (PilotID, Name) VALUES ('%s', '%s')", 
+    		  pilotId, pilotName
+ 	      );
+	      esql.executeUpdate(insertPilot);
+	      System.out.println("Pilot created with ID: " + pilotId);
+	      break;
+
+	case "3":	      
+	     String getMaxTech = "SELECT COALESCE(MAX(CAST(SUBSTRING(TechnicianID, 2) AS INTEGER)), 0) FROM Technician";
+	     List<List<String>> techResult = esql.executeQueryAndReturnResult(getMaxTech);
+	     int newTechID = Integer.parseInt(techResult.get(0).get(0)) + 1;
+	     String techId = String.format("T%03d", newTechID);
+
+	     System.out.print("Enter Technician Name: ");
+	     String techName = in.readLine().trim();
+	     String insertTechnician = String.format(
+	 	 "INSERT INTO Technician (TechnicianID, Name) VALUES ('%s', '%s')",
+	         techId, techName
+	     );
+    	     esql.executeUpdate(insertTechnician);
+	     System.out.println("Technician created with ID: " + techId);
+             break;
+
+	default:
+	   System.out.println("Invalid choice. Returning to main menu.");
+      }
+     } catch (Exception e) {
+	  System.err.println("Error creating user: " + e.getMessage());
+     }	  
+
    }//end CreateUser
 
 
@@ -716,7 +798,219 @@ public static void AddRepairRecord(AirlineManagement esql) {
     }
 }
 
-  
+public static String promptForValidDate(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Enter Date (yyyy-mm-dd) [example: 2025-05-05]: ");
+        String input = in.readLine().trim();
+        // Regex: 2025-05-05 or 2026-12-31 etc.
+        if (input.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            String[] parts = input.split("-");
+            int year = Integer.parseInt(parts[0]);
+            int month = Integer.parseInt(parts[1]);
+            int day = Integer.parseInt(parts[2]);
+            if (year >= 2025 && year <= 2026) {
+                if (month >= 1 && month <= 12) {
+                    int[] daysInMonth = {31,28,31,30,31,30,31,31,30,31,30,31};
+                    // leap year check for February
+                    if (month == 2 && ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)) {
+                        daysInMonth[1] = 29;
+                    }
+                    if (day >= 1 && day <= daysInMonth[month-1]) {
+                        return input; // Valid date!
+                    }
+                }
+            }
+        }
+        System.out.println("Invalid date! Please use yyyy-mm-dd and a year between 2025 and 2026. Example: 2025-05-05");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null; // Should never reach here.
+}
+
+
+  public static String promptForValidCity(BufferedReader in, String prompt) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print(prompt + " (letters and spaces only, e.g. 'New York'): ");
+        String input = in.readLine().trim();
+        if (input.matches("[A-Za-z ]{2,15}")) {
+            // Optional: capitalize first letter of each word for consistency
+            String[] words = input.split("\\s+");
+            StringBuilder sb = new StringBuilder();
+            for (String w : words) {
+                if (!w.isEmpty()) {
+                    sb.append(Character.toUpperCase(w.charAt(0)));
+                    if (w.length() > 1) sb.append(w.substring(1).toLowerCase());
+                    sb.append(" ");
+                }
+            }
+            return sb.toString().trim();
+        }
+        System.out.println("Invalid city! Example: 'New York'. Please use only letters and spaces (2-50 chars).");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+
+public static String promptForValidFirstName(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Customer First Name: ");
+        String input = in.readLine().trim();
+        if (input.matches("[A-Za-z]{2,15}")) {
+            // Capitalize first letter
+            return Character.toUpperCase(input.charAt(0)) + input.substring(1).toLowerCase();
+        }
+        System.out.println("Invalid first name! Example: 'Kevin'. Use only letters (2-30 characters).");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+
+
+
+public static String promptForValidLastName(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Customer Last Name: ");
+        String input = in.readLine().trim();
+        if (input.matches("[A-Za-z]{2,30}")) {
+            // Capitalize first letter
+            return Character.toUpperCase(input.charAt(0)) + input.substring(1).toLowerCase();
+        }
+        System.out.println("Invalid last name! Example: 'Hall'. Use only letters (2-30 characters).");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+
+public static String promptForValidFullName(BufferedReader in, String role) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print(role + " Full Name (e.g. 'Jessica Wang'): ");
+        String input = in.readLine().trim();
+        // Accepts two words, each 2-30 letters, separated by space
+        if (input.matches("[A-Za-z]{2,30}\\s+[A-Za-z]{2,30}")) {
+            String[] parts = input.split("\\s+");
+            StringBuilder formatted = new StringBuilder();
+            for (String name : parts) {
+                formatted.append(Character.toUpperCase(name.charAt(0)));
+                if (name.length() > 1) formatted.append(name.substring(1).toLowerCase());
+                formatted.append(" ");
+            }
+            return formatted.toString().trim();
+        }
+        System.out.println("Invalid name! Please enter a first and last name, each 2–30 letters. Example: 'Gina Moore'");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+
+public static String promptForValidCustomerID(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Customer ID (1-999): ");
+        String input = in.readLine().trim();
+        if (input.matches("\\d{1,3}")) {
+            int id = Integer.parseInt(input);
+            if (id >= 1 && id <= 999) {
+                return String.valueOf(id);
+            }
+        }
+        System.out.println("Invalid Customer ID! Enter a positive integer between 1 and 999 (e.g., 4).");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+
+public static String promptForValidPilotID(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Pilot ID (P001–P999): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("P\\d{3}")) {
+            int num = Integer.parseInt(input.substring(1));
+            if (num >= 1 && num <= 999) {
+                // Optionally pad with leading zeros
+                return "P" + String.format("%03d", num);
+            }
+        }
+        System.out.println("Invalid Pilot ID! Use format P001–P999, e.g., P010.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+
+public static String promptForValidTechnicianID(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Technician ID (T001–T999): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("T\\d{3}")) {
+            int num = Integer.parseInt(input.substring(1));
+            if (num >= 1 && num <= 999) {
+                // Optionally pad with leading zeros
+                return "T" + String.format("%03d", num);
+            }
+        }
+        System.out.println("Invalid Technician ID! Use format T001–T999, e.g., T101.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+
+public static String promptForValidFlightNumber(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Flight Number (F100–F120): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("F\\d{3}")) {
+            int num = Integer.parseInt(input.substring(1));
+            if (num >= 100 && num <= 120) {
+                return "F" + String.format("%03d", num);
+            }
+        }
+        System.out.println("Invalid Flight Number! Use format F100–F120, e.g., F105.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
 
 
 }//end AirlineManagement
