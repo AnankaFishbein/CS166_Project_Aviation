@@ -324,8 +324,8 @@ public class AirlineManagement {
          System.out.println("3. View Flight Status");
          System.out.println("4. View Flights of the day");
          System.out.println("5. View Full Order ID History");
-         System.out.println("6. View View Reservation Details");
-        //  System.out.println("7. View View Reservation Details");
+         System.out.println("6. View Reservation Details");
+         System.out.println("7. View Plane Info");
         //  System.out.println("8. View View Reservation Details");
         //  System.out.println("9. View View Reservation Details");
         //  System.out.println("10. View View Reservation Details");
@@ -357,7 +357,7 @@ public class AirlineManagement {
          case 4: if (role.equalsIgnoreCase("Manager")) ViewFlightsOfTheDay(esql); else notAuthorized(); break;
          case 5: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
          case 6: if (role.equalsIgnoreCase("Manager")) ViewReservationDetails(esql); else notAuthorized(); break;
-        //  case 7: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+         case 7: if (role.equalsIgnoreCase("Manager")) ViewPlaneInfo(esql); else notAuthorized(); break;
         //  case 8: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
         //  case 9: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
         //  case 10: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
@@ -907,6 +907,45 @@ public static void ViewReservationDetails(AirlineManagement esql) {
         System.err.println(e.getMessage());
     }
 }
+
+public static void ViewPlaneInfo(AirlineManagement esql) {
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        String planeId = promptForValidPlaneID(in);
+        if (planeId == null) return;
+
+        String query =
+            "SELECT Make, Model, Year, LastRepairDate FROM Plane WHERE PlaneID = '" + planeId + "'";
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+        if (result.size() == 0) {
+            System.out.println("No plane found with ID " + planeId + ".");
+            return;
+        }
+
+        List<String> row = result.get(0);
+        String make = row.get(0);
+        String model = row.get(1);
+        String yearStr = row.get(2);
+        String lastRepairDate = row.get(3);
+
+        int currentYear = java.time.LocalDate.now().getYear();
+        int year = Integer.parseInt(yearStr);
+        int age = currentYear - year;
+
+        System.out.println("Plane Information:");
+        System.out.println("Plane ID       : " + planeId);
+        System.out.println("Make           : " + make);
+        System.out.println("Model          : " + model);
+        System.out.println("Year           : " + year);
+        System.out.println("Age            : " + age + " year(s)");
+        System.out.println("Last Repair    : " + lastRepairDate);
+
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}
+
 
 
    public static void SearchFlights(AirlineManagement esql) {
