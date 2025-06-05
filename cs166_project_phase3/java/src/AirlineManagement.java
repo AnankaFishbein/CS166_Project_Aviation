@@ -93,6 +93,7 @@ public class AirlineManagement {
     * standard out.
     *
     * @param query the input query string
+    * B
     * @return the number of rows returned
     * @throws java.sql.SQLException when failed to execute the query
     */
@@ -415,7 +416,87 @@ public class AirlineManagement {
    /*
     * Creates a new user
     **/
-   public static void CreateUser(AirlineManagement esql){
+   public static void CreateUser(AirlineManagement esql) {
+     try {
+	BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+	System.out.println("Select user type:");
+	System.out.println("1. Customer");
+	System.out.println("2. Pilot");
+	System.out.println("3. Technician");
+	System.out.println("Enter choice: ");
+	String choice = in.readLine().trim();
+
+	switch(choice) {
+	   case "1":
+		String firstName = promptForValidFirstName(in);
+		if (firstName == null) return;
+		String lastName = promptForValidLastName(in);
+		if (lastName == null) return;
+		System.out.print("Enter Gender (M/F/O): ");
+		String gender = in.readLine().trim();
+		String birth = promptForValidDate(in);
+		if (birth == null) return;
+		System.out.print("Enter Address: ");
+		String address = in.readLine().trim();
+		System.out.print("Enter Phone #: ");
+		String phoneNumber = in.readLine().trim();
+		System.out.print("Enter Zip Code: ");
+		String zip = in.readLine().trim();
+
+		String getMaxId = "SELECT COALESCE(MAX(CustomerID), 0) FROM Customer";
+		List<List<String>> result = esql.executeQueryAndReturnResult(getMaxId);
+		int newId = Integer.parseInt(result.get(0).get(0)) + 1;
+
+		String insertCustomer = String.format(
+		   "INSERT INTO Customer (CustomerID, FirstName, LastName, Gender, DOB, Address, Phone, Zip) " + 
+		   "VALUES (%d, '%s', '%s', '%s', DATE '%s', '%s', '%s', '%s')",
+		   newId, firstName, lastName, gender, birth, address, phoneNumber, zip
+		);
+		esql.executeUpdate(insertCustomer);
+		System.out.println("Customer created with ID: " + newId);
+		break;
+
+	 case "2":
+	      String getMaxPilot = "SELECT COALESCE(MAX(CAST(SUBSTRING(PilotID, 2) AS INTEGER)), 0) FROM Pilot";
+	      List<List<String>> pilotResult = esql.executeQueryAndReturnResult(getMaxPilot);
+	      int newPilotID = Integer.parseInt(pilotResult.get(0).get(0)) + 1;
+	      String pilotId = String.format("P%03d", newPilotID);
+
+	      System.out.print("Enter Pilot Name: ");
+	      String pilotName = in.readLine().trim();
+
+	      String insertPilot = String.format(
+		  "INSERT INTO Pilot (PilotID, Name) VALUES ('%s', '%s')", 
+    		  pilotId, pilotName
+ 	      );
+	      esql.executeUpdate(insertPilot);
+	      System.out.println("Pilot created with ID: " + pilotId);
+	      break;
+
+	case "3":	      
+	     String getMaxTech = "SELECT COALESCE(MAX(CAST(SUBSTRING(TechnicianID, 2) AS INTEGER)), 0) FROM Technician";
+	     List<List<String>> techResult = esql.executeQueryAndReturnResult(getMaxTech);
+	     int newTechID = Integer.parseInt(techResult.get(0).get(0)) + 1;
+	     String techId = String.format("T%03d", newTechID);
+
+	     System.out.print("Enter Technician Name: ");
+	     String techName = in.readLine().trim();
+	     String insertTechnician = String.format(
+	 	 "INSERT INTO Technician (TechnicianID, Name) VALUES ('%s', '%s')",
+	         techId, techName
+	     );
+    	     esql.executeUpdate(insertTechnician);
+	     System.out.println("Technician created with ID: " + techId);
+             break;
+
+	default:
+	   System.out.println("Invalid choice. Returning to main menu.");
+      }
+     } catch (Exception e) {
+	  System.err.println("Error creating user: " + e.getMessage());
+     }	  
+
    }//end CreateUser
 
 
@@ -923,7 +1004,7 @@ public static void AddRepairRecord(AirlineManagement esql) {
         System.err.println(e.getMessage());
     }
 }
-
+  
 public static String promptForValidDate(BufferedReader in) throws IOException {
     int maxTries = 5;
     for (int attempt = 1; attempt <= maxTries; attempt++) {
@@ -1001,7 +1082,6 @@ public static String promptForValidFirstName(BufferedReader in) throws IOExcepti
     }
     return null;
 }
-
 
 public static String promptForValidLastName(BufferedReader in) throws IOException {
     int maxTries = 5;
@@ -1127,7 +1207,6 @@ public static String promptForValidFlightNumber(BufferedReader in) throws IOExce
     }
     return null;
 }
-
 
 }//end AirlineManagement
 
