@@ -324,11 +324,16 @@ public class AirlineManagement {
          System.out.println("3. View Flight Status");
          System.out.println("4. View Flights of the day");
          System.out.println("5. View Full Order ID History");
+         System.out.println("6. View View Reservation Details");
+        //  System.out.println("7. View View Reservation Details");
+        //  System.out.println("8. View View Reservation Details");
+        //  System.out.println("9. View View Reservation Details");
+        //  System.out.println("10. View View Reservation Details");
          // ...more management options as needed...
       }
       if (role.equalsIgnoreCase("Customer")) {
-         System.out.println("10. Search Flights");
-         System.out.println("11. Make Reservation");
+         System.out.println("11. Search Flights");
+         System.out.println("12. Make Reservation");
          // ...more customer options...
       }
       if (role.equalsIgnoreCase("Pilot")) {
@@ -351,11 +356,16 @@ public class AirlineManagement {
          case 3: if (role.equalsIgnoreCase("Manager")) ViewFlightStatus(esql); else notAuthorized(); break;
          case 4: if (role.equalsIgnoreCase("Manager")) ViewFlightsOfTheDay(esql); else notAuthorized(); break;
          case 5: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+         case 6: if (role.equalsIgnoreCase("Manager")) ViewReservationDetails(esql); else notAuthorized(); break;
+        //  case 7: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+        //  case 8: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+        //  case 9: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+        //  case 10: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
          // Add more management functions as needed
 
          // Customer
-         case 10: if (role.equalsIgnoreCase("Customer")) SearchFlights(esql); else notAuthorized(); break;
-         case 11: if (role.equalsIgnoreCase("Customer")) MakeReservation(esql); else notAuthorized(); break;
+         case 11: if (role.equalsIgnoreCase("Customer")) SearchFlights(esql); else notAuthorized(); break;
+         case 12: if (role.equalsIgnoreCase("Customer")) MakeReservation(esql); else notAuthorized(); break;
          // Add more customer functions as needed
 
          // Pilot
@@ -863,6 +873,41 @@ public static String LogIn(AirlineManagement esql) {
         System.err.println(e.getMessage());
     }
 }//end ViewOrderHistory
+
+public static void ViewReservationDetails(AirlineManagement esql) {
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+        String resId = promptForValidReservationID(in);
+        if (resId == null) return;
+
+        // Find the reservation and customer info
+        String query =
+            "SELECT c.FirstName, c.LastName, c.Gender, c.DOB, c.Address, c.Phone, c.Zip " +
+            "FROM Reservation r " +
+            "JOIN Customer c ON r.CustomerID = c.CustomerID " +
+            "WHERE r.ReservationID = '" + resId + "'";
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+        if (result.size() == 0) {
+            System.out.println("No reservation found with ID " + resId + ".");
+        } else {
+            List<String> row = result.get(0);
+            System.out.println("Traveler information for reservation " + resId + ":");
+            System.out.println("First Name : " + row.get(0));
+            System.out.println("Last Name  : " + row.get(1));
+            System.out.println("Gender     : " + row.get(2));
+            System.out.println("DOB        : " + row.get(3));
+            System.out.println("Address    : " + row.get(4));
+            System.out.println("Phone      : " + row.get(5));
+            System.out.println("Zip Code   : " + row.get(6));
+        }
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}
+
 
    public static void SearchFlights(AirlineManagement esql) {
     try {
@@ -1409,6 +1454,25 @@ public static String promptForValidRepairCode(BufferedReader in) throws IOExcept
     return null;
 }
 
+public static String promptForValidReservationID(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Reservation ID (R0001–R9999): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("R\\d{4}")) {
+            int num = Integer.parseInt(input.substring(1));
+            if (num >= 1 && num <= 9999) {
+                return String.format("R%04d", num);
+            }
+        }
+        System.out.println("Invalid Reservation ID! Use format R0001–R9999, e.g., R0008.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
 
 
 
