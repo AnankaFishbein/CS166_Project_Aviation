@@ -326,7 +326,7 @@ public class AirlineManagement {
          System.out.println("5. View Full Order ID History");
          System.out.println("6. View Reservation Details");
          System.out.println("7. View Plane Info");
-        //  System.out.println("8. View View Reservation Details");
+         System.out.println("8. View Repairs By Technician");
         //  System.out.println("9. View View Reservation Details");
         //  System.out.println("10. View View Reservation Details");
          // ...more management options as needed...
@@ -358,7 +358,7 @@ public class AirlineManagement {
          case 5: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
          case 6: if (role.equalsIgnoreCase("Manager")) ViewReservationDetails(esql); else notAuthorized(); break;
          case 7: if (role.equalsIgnoreCase("Manager")) ViewPlaneInfo(esql); else notAuthorized(); break;
-        //  case 8: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+         case 8: if (role.equalsIgnoreCase("Manager")) ViewRepairsByTechnician(esql); else notAuthorized(); break;
         //  case 9: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
         //  case 10: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
          // Add more management functions as needed
@@ -946,6 +946,33 @@ public static void ViewPlaneInfo(AirlineManagement esql) {
     }
 }
 
+    public static void ViewRepairsByTechnician(AirlineManagement esql) {
+        try {
+            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+            String techId = promptForValidTechnicianID(in);
+            if (techId == null) return;
+
+            String query =
+                "SELECT RepairID, PlaneID, RepairCode, RepairDate " +
+                "FROM Repair WHERE TechnicianID = '" + techId + "' " +
+                "ORDER BY RepairDate";
+
+            List<List<String>> result = esql.executeQueryAndReturnResult(query);
+            if (result.size() == 0) {
+                System.out.println("No repairs found for technician " + techId + ".");
+            } else {
+                System.out.println("Repairs performed by technician " + techId + ":");
+                System.out.println("| RepairID | PlaneID | RepairCode | RepairDate  |");
+                System.out.println("|----------|---------|------------|-------------|");
+                for (List<String> row : result) {
+                    System.out.printf("| %-8s | %-7s | %-10s | %-11s |\n",
+                            row.get(0), row.get(1), row.get(2), row.get(3));
+                }
+            }
+        } catch(Exception e) {
+            System.err.println(e.getMessage());
+        }
+    }
 
 
    public static void SearchFlights(AirlineManagement esql) {
