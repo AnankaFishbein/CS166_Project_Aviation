@@ -912,62 +912,122 @@ public static String LogIn(AirlineManagement esql) {
 public static void MakeReservation(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter your CustomerID: ");
-        String custId = in.readLine().trim();
-        System.out.print("Enter Flight Number: ");
-        String flightNum = in.readLine().trim();
-        System.out.print("Enter Flight Date (yyyy-mm-dd): ");
-        String flightDate = in.readLine().trim();
 
-        // Find the FlightInstanceID
+        String custId = promptForValidCustomerID(in);
+        if (custId == null) return;
+
+        String flightNum = promptForValidFlightNumber(in);
+        if (flightNum == null) return;
+
+        String flightDate = promptForValidDate(in);
+        if (flightDate == null) return;
+
+        // Find the FlightInstanceID and seat info
         String findInstance = "SELECT FlightInstanceID, SeatsTotal, SeatsSold FROM FlightInstance " +
                               "WHERE FlightNumber = '" + flightNum + "' " +
                               "AND FlightDate = DATE '" + flightDate + "'";
         List<List<String>> result = esql.executeQueryAndReturnResult(findInstance);
 
-        if(result.isEmpty()) {
+        if (result.isEmpty()) {
             System.out.println("No flight instance found.");
             return;
         }
+
+        // // Check if flight date is in the past
+        // java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+        // java.sql.Date flightSqlDate = java.sql.Date.valueOf(flightDate);
+
+        // if (flightSqlDate.before(today)) {
+        //     System.out.println("Sorry, this flight has already flown. No further reservations or waitlist allowed.");
+        //     return;
+        // }
+
+        // // Optionally, also check DepartedOnTime, if you use that as a flown marker:
+        // // (Assuming result.get(0).get(3) is DepartedOnTime)
+        // if (result.get(0).size() > 3 && result.get(0).get(3) != null && result.get(0).get(3).equals("t")) {
+        //     System.out.println("Sorry, this flight has already departed. No further reservations or waitlist allowed.");
+        //     return;
+        // }
+
         String instanceId = result.get(0).get(0);
         int seatsTotal = Integer.parseInt(result.get(0).get(1));
         int seatsSold = Integer.parseInt(result.get(0).get(2));
 
+        // New flown status check:
+        String checkFlown = "SELECT 1 FROM Reservation WHERE FlightInstanceID = " + instanceId + " AND Status = 'flown' LIMIT 1";
+        List<List<String>> flownCheck = esql.executeQueryAndReturnResult(checkFlown);
+        if (flownCheck.size() > 0) {
+            System.out.println("Sorry, this flight is already flown. No further reservations or waitlist allowed.");
+            return;
+        }
+
         String status = (seatsSold < seatsTotal) ? "reserved" : "waitlist";
 
-        // Insert into Reservation (ReservationID can be generated or auto)
-        String insertRes = "INSERT INTO Reservation (CustomerID, FlightInstanceID, Status) " +
-                           "VALUES (" + custId + ", " + instanceId + ", '" + status + "')";
+       // Generate a new unique ReservationID (assumes format R0001, R0002, etc.)
+        String getMaxId = "SELECT COALESCE(MAX(ReservationID), 'R0000') FROM Reservation";
+        List<List<String>> maxIdResult = esql.executeQueryAndReturnResult(getMaxId);
+        String maxId = maxIdResult.get(0).get(0);
+        int newNum = Integer.parseInt(maxId.replaceAll("[^0-9]", "")) + 1;
+        if (newNum > 9999) {
+            System.out.println("Error: Maximum number of reservations reached (R9999). Cannot create new reservation.");
+            return;
+        }
+        String newReservationId = String.format("R%04d", newNum);
+
+
+        String insertRes = String.format(
+            "INSERT INTO Reservation (ReservationID, CustomerID, FlightInstanceID, Status) " +
+            "VALUES ('%s', %s, %s, '%s')",
+            newReservationId, custId, instanceId, status
+        );
         esql.executeUpdate(insertRes);
 
-        System.out.println("Reservation " + (status.equals("reserved") ? "confirmed!" : "added to waitlist!"));
+        System.out.println("Reservation ID: " + newReservationId +
+            (status.equals("reserved") ? " - Confirmed!" : " - Added to waitlist!"));
 
     } catch(Exception e) {
         System.err.println(e.getMessage());
     }
 }
+
 
 public static void MaintenanceRequest(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter your PilotID: ");
-        String pilotId = in.readLine().trim();
-        System.out.print("Enter PlaneID: ");
-        String planeId = in.readLine().trim();
-        System.out.print("Enter Repair Code: ");
-        String repairCode = in.readLine().trim();
-        System.out.print("Enter Request Date (yyyy-mm-dd): ");
-        String requestDate = in.readLine().trim();
+        String pilotId = promptForValidPilotID(in);
+        if (pilotId == null) return;
 
-        String insertReq = "INSERT INTO MaintenanceRequest (PlaneID, RepairCode, RequestDate, PilotID) " +
-                           "VALUES ('" + planeId + "', '" + repairCode + "', DATE '" + requestDate + "', '" + pilotId + "')";
+        String planeId = promptForValidPlaneID(in);
+        if (planeId == null) return;
+
+        String repairCode = promptForValidRepairCode(in);
+        if (repairCode == null) return;
+
+        String requestDate = promptForValidDate(in);
+        if (requestDate == null) return;
+
+        // Generate unique RequestID
+        String getMaxId = "SELECT COALESCE(MAX(RequestID), 0) FROM MaintenanceRequest";
+        List<List<String>> maxIdResult = esql.executeQueryAndReturnResult(getMaxId);
+        int newRequestId = 1;
+        if (maxIdResult.size() > 0) {
+            newRequestId = Integer.parseInt(maxIdResult.get(0).get(0)) + 1;
+        }
+
+        String insertReq = String.format(
+            "INSERT INTO MaintenanceRequest (RequestID, PlaneID, RepairCode, RequestDate, PilotID) " +
+            "VALUES (%d, '%s', '%s', DATE '%s', '%s')",
+            newRequestId, planeId, repairCode, requestDate, pilotId
+        );
         esql.executeUpdate(insertReq);
-        System.out.println("Maintenance request submitted!");
+        System.out.println("Maintenance request submitted! Request ID: " + newRequestId);
 
     } catch(Exception e) {
         System.err.println(e.getMessage());
     }
 }
+
+
 
 public static void ViewRepairs(AirlineManagement esql) {
     try {
@@ -1321,6 +1381,26 @@ public static String promptForValidPlaneID(BufferedReader in) throws IOException
             return input;
         }
         System.out.println("Invalid Plane ID! Use format PLXXX, e.g., PL001.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidRepairCode(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Repair Code (RC001–RC999): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("RC\\d{3}")) {
+            int num = Integer.parseInt(input.substring(2));
+            if (num >= 1 && num <= 999) {
+                return "RC" + String.format("%03d", num);
+            }
+        }
+        System.out.println("Invalid Repair Code! Use format RCXXX, e.g., RC004.");
         if (attempt == maxTries) {
             System.out.println("Too many invalid attempts. Logging out.");
             return null;
