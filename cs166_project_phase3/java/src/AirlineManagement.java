@@ -329,6 +329,8 @@ public class AirlineManagement {
       if (role.equalsIgnoreCase("Customer")) {
          System.out.println("10. Search Flights");
          System.out.println("11. Make Reservation");
+	 System.out.println("12. Find Ticket Cost");
+	 System.out.println("13. Find Airplane Type");
          // ...more customer options...
       }
       if (role.equalsIgnoreCase("Pilot")) {
@@ -356,6 +358,8 @@ public class AirlineManagement {
          // Customer
          case 10: if (role.equalsIgnoreCase("Customer")) SearchFlights(esql); else notAuthorized(); break;
          case 11: if (role.equalsIgnoreCase("Customer")) MakeReservation(esql); else notAuthorized(); break;
+	 case 12: if (role.equalsIgnoreCase("Customer")) FindTicketCost(esql); else notAuthorized(); break;
+	 case 13: if (role.equalsIgnoreCase("Customer")) FindPlaneType(esql); else notAuthorized(); break;
          // Add more customer functions as needed
 
          // Pilot
@@ -1206,6 +1210,54 @@ public static String promptForValidFlightNumber(BufferedReader in) throws IOExce
         }
     }
     return null;
+}
+
+public static void FindTicketCost(AirlineManagement esql) {
+    try {
+	System.out.print("Please enter a Flight Number: ");
+	String flightNum = in.readLine().trim();
+
+	String query = String.format(
+	    "SELECT TicketCost FROM FlightInstance WHERE FlightNumber = '%s' LIMIT 1",
+	    flightNum
+	);
+
+	List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+	if (result.isEmpty()) {
+	    System.out.println("No flight found with that flight number. Please check your input.");
+	}
+	else {
+	    System.out.println("Ticket cost for flight " + flightNum + " is: $" + result.get(0).get(0));
+	}
+    } catch (Exception e) {
+	    System.err.println("Error finding ticket cost: " + e.getMessage());
+    }
+}
+
+public static void FindPlaneType(AirlineManagement esql) {
+    try {
+	System.out.print("Please enter a Flight Number: ");
+	String flightNum = in.readLine().trim();
+
+	String query = String.format(
+	    "SELECT p.Make, p.Model FROM Flight f JOIN Plane p ON f.PlaneID = p.PlaneID " +
+	    "WHERE f.FlightNumber = '%s'",
+	    flightNum
+	);
+
+	List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+	if (result.isEmpty()) {
+	    System.out.println("No airplane was found for that flight number. Please check your input.");
+	}
+	else {
+	    System.out.println("Plane Make: " + result.get(0).get(0));
+	    System.out.println("Plane Model: " + result.get(0).get(1));
+	}
+    } catch (Exception e) {
+	    System.err.println("Error finding plane info: " + e.getMessage());
+    }
 }
 
 }//end AirlineManagement
