@@ -522,38 +522,78 @@ public static String LogIn(AirlineManagement esql) {
  * Lists all flights with details
  **/
    public static void ViewFlights(AirlineManagement esql) {
-      try {
-         String query = "SELECT f.FlightNumber, f.DepartureCity, f.ArrivalCity, f.PlaneID, " +
-                        "s.DayOfWeek, s.DepartureTime, s.ArrivalTime " +
-                        "FROM Flight f JOIN Schedule s ON f.ScheduleID = s.ScheduleID";
-         esql.executeQueryAndPrintResult(query);
-      } catch(Exception e) {
-         System.err.println(e.getMessage());
-      }
-   }//end ViewFlights
-
-   /*
- * Shows total and sold seats for a given flight and date
- **/
-  public static void ViewFlightSeats(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter flight number: ");
-        String flightNumber = in.readLine().trim();
-
-        String flightDate = promptForValidDate(in);
-        if (flightDate == null) {
-            // User failed too many times
+        // Use the robust flight number guard!
+        String flightNumber = promptForValidFlightNumber(in);
+        if (flightNumber == null) {
             System.out.println("Returning to main menu.");
             return;
         }
 
-        String query = "SELECT SeatsTotal, SeatsSold FROM FlightInstance " +
+        String query = 
+            "SELECT s.DayOfWeek, s.DepartureTime, s.ArrivalTime " +
+            "FROM Schedule s " +
+            "WHERE s.FlightNumber = '" + flightNumber + "' " +
+            "ORDER BY " +
+            "CASE " +
+            "   WHEN s.DayOfWeek = 'Monday' THEN 1 " +
+            "   WHEN s.DayOfWeek = 'Tuesday' THEN 2 " +
+            "   WHEN s.DayOfWeek = 'Wednesday' THEN 3 " +
+            "   WHEN s.DayOfWeek = 'Thursday' THEN 4 " +
+            "   WHEN s.DayOfWeek = 'Friday' THEN 5 " +
+            "   WHEN s.DayOfWeek = 'Saturday' THEN 6 " +
+            "   WHEN s.DayOfWeek = 'Sunday' THEN 7 " +
+            "   ELSE 8 END";
+
+        int results = esql.executeQueryAndPrintResult(query);
+
+        if (results == 0) {
+            System.out.println("No weekly schedule found for flight " + flightNumber + ".");
+        }
+
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}//end ViewFlights
+
+
+   /*
+ * Shows total and sold seats for a given flight and date
+ **/
+ public static void ViewFlightSeats(AirlineManagement esql) {
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+        // Use robust flight number input guard
+        String flightNumber = promptForValidFlightNumber(in);
+        if (flightNumber == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        // Use robust date input guard
+        String flightDate = promptForValidDate(in);
+        if (flightDate == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        String query = "SELECT SeatsTotal, SeatsSold " +
+                       "FROM FlightInstance " +
                        "WHERE FlightNumber = '" + flightNumber + "' " +
                        "AND FlightDate = DATE '" + flightDate + "'";
-        int results = esql.executeQueryAndPrintResult(query);
-        if (results == 0) {
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+        if (result.size() == 0) {
             System.out.println("No seat information found for this flight and date.");
+        } else {
+            int seatsTotal = Integer.parseInt(result.get(0).get(0));
+            int seatsSold = Integer.parseInt(result.get(0).get(1));
+            int seatsAvailable = seatsTotal - seatsSold;
+            System.out.println("Flight: " + flightNumber + " on " + flightDate);
+            System.out.println("Seats Sold: " + seatsSold);
+            System.out.println("Seats Still Available: " + seatsAvailable);
         }
     } catch(Exception e) {
         System.err.println(e.getMessage());
@@ -565,50 +605,182 @@ public static String LogIn(AirlineManagement esql) {
  * Shows departed/arrived on time for a given flight and date
  **/
    public static void ViewFlightStatus(AirlineManagement esql) {
-      try {
-         System.out.print("Enter flight number: ");
-         int flightNumber = Integer.parseInt(in.readLine());
-         System.out.print("Enter flight date (yyyy-mm-dd): ");
-         String dateStr = in.readLine();
-         String query = "SELECT DepartedOnTime, ArrivedOnTime FROM FlightInstance " +
-                        "WHERE FlightNumber = " + flightNumber + 
-                        " AND FlightDate = DATE '" + dateStr + "'";
-         esql.executeQueryAndPrintResult(query);
-      } catch(Exception e) {
-         System.err.println(e.getMessage());
-      }
-   }//end ViewFlightStatus
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        // Input guards
+        String flightNumber = promptForValidFlightNumber(in);
+        if (flightNumber == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        String flightDate = promptForValidDate(in);
+        if (flightDate == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        String query = 
+            "SELECT s.DepartureTime, s.ArrivalTime, fi.DepartedOnTime, fi.ArrivedOnTime " +
+            "FROM FlightInstance fi " +
+            "JOIN Schedule s ON fi.FlightNumber = s.FlightNumber " +
+            "AND s.DayOfWeek = TO_CHAR(fi.FlightDate, 'FMDay') " +
+            "WHERE fi.FlightNumber = '" + flightNumber + "' " +
+            "AND fi.FlightDate = DATE '" + flightDate + "'";
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+        if (result.size() == 0) {
+            System.out.println("No flight status information found for this flight and date.");
+        } else {
+            // Should be at most one result now
+            List<String> row = result.get(0);
+            String schedDep = row.get(0);
+            String schedArr = row.get(1);
+            String departed = row.get(2).equals("t") ? "Yes" : "No";
+            String arrived = row.get(3).equals("t") ? "Yes" : "No";
+            System.out.println("-----------------------------------------");
+            System.out.println("Scheduled Departure: " + schedDep);
+            System.out.println("Scheduled Arrival:   " + schedArr);
+            System.out.println("Departed On Time:    " + departed);
+            System.out.println("Arrived On Time:     " + arrived);
+            System.out.println("-----------------------------------------");
+        }
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}//end ViewFlightStatus
 
    /*
  * Lists all flights scheduled on a given date
  **/
    public static void ViewFlightsOfTheDay(AirlineManagement esql) {
-      try {
-         System.out.print("Enter date (yyyy-mm-dd): ");
-         String dateStr = in.readLine();
-         String query = "SELECT fi.FlightInstanceID, fi.FlightNumber, f.DepartureCity, f.ArrivalCity " +
-                        "FROM FlightInstance fi JOIN Flight f ON fi.FlightNumber = f.FlightNumber " +
-                        "WHERE fi.FlightDate = DATE '" + dateStr + "'";
-         esql.executeQueryAndPrintResult(query);
-      } catch(Exception e) {
-         System.err.println(e.getMessage());
-      }
-   }//end ViewFlightsOfTheDay
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+        String flightDate = promptForValidDate(in);
+        if (flightDate == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        String query =
+            "SELECT fi.FlightInstanceID, fi.FlightNumber, f.DepartureCity, f.ArrivalCity, fi.NumOfStops, " +
+            "s.DepartureTime, s.ArrivalTime, fi.DepartedOnTime, fi.ArrivedOnTime " +
+            "FROM FlightInstance fi " +
+            "JOIN Flight f ON fi.FlightNumber = f.FlightNumber " +
+            "JOIN Schedule s ON fi.FlightNumber = s.FlightNumber " +
+            "AND s.DayOfWeek = TO_CHAR(fi.FlightDate, 'FMDay') " +
+            "WHERE fi.FlightDate = DATE '" + flightDate + "' " +
+            "ORDER BY fi.FlightNumber, s.DepartureTime";
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+        if (result.size() == 0) {
+            System.out.println("No flights scheduled on " + flightDate + ".");
+        } else {
+            System.out.println("Flights scheduled on " + flightDate + ":");
+            System.out.println("InstanceID | FlightNumber | From         | To           | Stops | Departure | Arrival   | DepartedOnTime | ArrivedOnTime");
+            for (List<String> row : result) {
+                String departed = row.get(7).equals("t") ? "Yes" : "No";
+                String arrived  = row.get(8).equals("t") ? "Yes" : "No";
+                System.out.printf("%10s | %12s | %-12s | %-12s | %5s | %-9s | %-8s | %-14s | %-13s\n",
+                        row.get(0), row.get(1), row.get(2), row.get(3), row.get(4),
+                        row.get(5), row.get(6), departed, arrived);
+            }
+        }
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}//end ViewFlightsOfTheDay
 
    /*
    * Shows all reservations with customer and flight info
    **/
    public static void ViewOrderHistory(AirlineManagement esql) {
-      try {
-         String query = "SELECT r.ReservationID, r.Status, c.FirstName, c.LastName, fi.FlightNumber, fi.FlightDate " +
-                        "FROM Reservation r " +
-                        "JOIN Customer c ON r.CustomerID = c.CustomerID " +
-                        "JOIN FlightInstance fi ON r.FlightInstanceID = fi.FlightInstanceID";
-         esql.executeQueryAndPrintResult(query);
-      } catch(Exception e) {
-         System.err.println(e.getMessage());
-      }
-   }//end ViewOrderHistory
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+        String flightNumber = promptForValidFlightNumber(in);
+        if (flightNumber == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        String flightDate = promptForValidDate(in);
+        if (flightDate == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        // Find FlightInstanceID
+        String findInstance = "SELECT FlightInstanceID FROM FlightInstance " +
+                              "WHERE FlightNumber = '" + flightNumber + "' " +
+                              "AND FlightDate = DATE '" + flightDate + "'";
+        List<List<String>> instanceResult = esql.executeQueryAndReturnResult(findInstance);
+        if (instanceResult.size() == 0) {
+            System.out.println("No flight instance found for " + flightNumber + " on " + flightDate + ".");
+            return;
+        }
+        String instanceId = instanceResult.get(0).get(0);
+
+        // 1. All reservations
+        System.out.println("\nPassengers who made a reservation:");
+        String queryAll =
+            "SELECT c.CustomerID, c.FirstName, c.LastName, r.Status " +
+            "FROM Reservation r " +
+            "JOIN Customer c ON r.CustomerID = c.CustomerID " +
+            "WHERE r.FlightInstanceID = " + instanceId +
+            " ORDER BY r.Status";
+        List<List<String>> allResults = esql.executeQueryAndReturnResult(queryAll);
+        if (allResults.size() == 0) {
+            System.out.println("  None.");
+        } else {
+            System.out.printf("| %-8s | %-15s | %-15s | %-10s |\n", "ID", "First Name", "Last Name", "Status");
+            System.out.println("|----------|-----------------|-----------------|------------|");
+            for (List<String> row : allResults) {
+                System.out.printf("| %-8s | %-15s | %-15s | %-10s |\n", row.get(0), row.get(1), row.get(2), row.get(3));
+            }
+        }
+
+        // 2. Waitlist only
+        System.out.println("\nPassengers on the waiting list:");
+        String queryWaitlist =
+            "SELECT c.CustomerID, c.FirstName, c.LastName " +
+            "FROM Reservation r " +
+            "JOIN Customer c ON r.CustomerID = c.CustomerID " +
+            "WHERE r.FlightInstanceID = " + instanceId + " AND r.Status = 'waitlist'";
+        List<List<String>> waitResults = esql.executeQueryAndReturnResult(queryWaitlist);
+        if (waitResults.size() == 0) {
+            System.out.println("  None.");
+        } else {
+            System.out.printf("| %-8s | %-15s | %-15s |\n", "ID", "First Name", "Last Name");
+            System.out.println("|----------|-----------------|-----------------|");
+            for (List<String> row : waitResults) {
+                System.out.printf("| %-8s | %-15s | %-15s |\n", row.get(0), row.get(1), row.get(2));
+            }
+        }
+
+        // 3. Actually flown
+        System.out.println("\nPassengers who actually flew:");
+        String queryFlown =
+            "SELECT c.CustomerID, c.FirstName, c.LastName " +
+            "FROM Reservation r " +
+            "JOIN Customer c ON r.CustomerID = c.CustomerID " +
+            "WHERE r.FlightInstanceID = " + instanceId + " AND r.Status = 'flown'";
+        List<List<String>> flownResults = esql.executeQueryAndReturnResult(queryFlown);
+        if (flownResults.size() == 0) {
+            System.out.println("  None.");
+        } else {
+            System.out.printf("| %-8s | %-15s | %-15s |\n", "ID", "First Name", "Last Name");
+            System.out.println("|----------|-----------------|-----------------|");
+            for (List<String> row : flownResults) {
+                System.out.printf("| %-8s | %-15s | %-15s |\n", row.get(0), row.get(1), row.get(2));
+            }
+        }
+
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}//end ViewOrderHistory
 
    public static void SearchFlights(AirlineManagement esql) {
     try {
@@ -936,6 +1108,25 @@ public static String promptForValidTechnicianID(BufferedReader in) throws IOExce
     return null;
 }
 
+public static String promptForValidFlightNumber(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Flight Number (F100–F120): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("F\\d{3}")) {
+            int num = Integer.parseInt(input.substring(1));
+            if (num >= 100 && num <= 120) {
+                return "F" + String.format("%03d", num);
+            }
+        }
+        System.out.println("Invalid Flight Number! Use format F100–F120, e.g., F105.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
 
 
 }//end AirlineManagement
