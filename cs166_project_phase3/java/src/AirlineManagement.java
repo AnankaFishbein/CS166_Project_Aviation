@@ -324,17 +324,19 @@ public class AirlineManagement {
          System.out.println("3. View Flight Status");
          System.out.println("4. View Flights of the day");
          System.out.println("5. View Full Order ID History");
-	 System.out.println("6. View Reservation Details");
-	 System.out.println("7. Get Plane Information");
-	 System.out.println("8. List Technician Repairs");
-	 System.out.println("9. View Plane Repairs by Date");
+         System.out.println("6. View Reservation Details");
+         System.out.println("7. Get Plane Information");
+         System.out.println("8. List Technician Repairs");
+         System.out.println("9. View Plane Repairs by Date");
+         System.out.println("10. View Flight Stats by Date Range");
          // ...more management options as needed...
       }
+     
       if (role.equalsIgnoreCase("Customer")) {
          System.out.println("10. Search Flights");
          System.out.println("11. Make Reservation");
-	 System.out.println("12. Find Ticket Cost");
-	 System.out.println("13. Find Airplane Type");
+         System.out.println("12. Find Ticket Cost");
+	       System.out.println("13. Find Airplane Type");
          // ...more customer options...
       }
       if (role.equalsIgnoreCase("Pilot")) {
@@ -358,17 +360,20 @@ public class AirlineManagement {
          case 3: if (role.equalsIgnoreCase("Manager")) ViewFlightStatus(esql); else notAuthorized(); break;
          case 4: if (role.equalsIgnoreCase("Manager")) ViewFlightsOfTheDay(esql); else notAuthorized(); break;
          case 5: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
-	 case 6: if (role.equalsIgnoreCase("Manager")) ViewReservationDetails(esql); else notAuthorized(); break;
-         case 7: if (role.equalsIgnoreCase("Manager")) GetPlaneInformation(esql); else notAuthorized(); break;
-	 case 8: if (role.equalsIgnoreCase("Manager")) ViewTechnicianRepairs(esql); else notAuthorized(); break;
-	 case 9: if (role.equalsIgnoreCase("Manager")) ViewPlaneRepairs(esql); else notAuthorized(); break;
-         // Add more management functions as needed
 
+         case 6: if (role.equalsIgnoreCase("Manager")) ViewReservationDetails(esql); else notAuthorized(); break;
+         case 7: if (role.equalsIgnoreCase("Manager")) ViewPlaneInfo(esql); else notAuthorized(); break;
+         case 8: if (role.equalsIgnoreCase("Manager")) ViewRepairsByTechnician(esql); else notAuthorized(); break;
+         case 9: if (role.equalsIgnoreCase("Manager")) ViewRepairsForPlaneInRange(esql); else notAuthorized(); break;
+         case 10: if (role.equalsIgnoreCase("Manager")) ViewFlightStatsInRange(esql); else notAuthorized(); break;
+         // Add more management functions as needed
+          
          // Customer
          case 10: if (role.equalsIgnoreCase("Customer")) SearchFlights(esql); else notAuthorized(); break;
          case 11: if (role.equalsIgnoreCase("Customer")) MakeReservation(esql); else notAuthorized(); break;
-	 case 12: if (role.equalsIgnoreCase("Customer")) FindTicketCost(esql); else notAuthorized(); break;
-	 case 13: if (role.equalsIgnoreCase("Customer")) FindPlaneType(esql); else notAuthorized(); break;
+	       case 12: if (role.equalsIgnoreCase("Customer")) FindTicketCost(esql); else notAuthorized(); break;
+	       case 13: if (role.equalsIgnoreCase("Customer")) FindPlaneType(esql); else notAuthorized(); break;
+
          // Add more customer functions as needed
 
          // Pilot
@@ -447,16 +452,16 @@ public class AirlineManagement {
 		if (firstName == null) return;
 		String lastName = promptForValidLastName(in);
 		if (lastName == null) return;
-		System.out.print("Enter Gender (M/F/O): ");
-		String gender = in.readLine().trim();
+		String gender = promptForValidGender(in);
+        if (gender == null) return;
 		String birth = promptForValidDate(in);
 		if (birth == null) return;
-		System.out.print("Enter Address: ");
-		String address = in.readLine().trim();
-		System.out.print("Enter Phone #: ");
-		String phoneNumber = in.readLine().trim();
-		System.out.print("Enter Zip Code: ");
-		String zip = in.readLine().trim();
+		String address = promptForValidAddress(in);
+        if (address == null) return;
+		String phoneNumber = promptForValidPhone(in);
+        if (phoneNumber == null) return;
+		String zip = promptForValidZip(in);
+        if (zip == null) return;
 
 		String getMaxId = "SELECT COALESCE(MAX(CustomerID), 0) FROM Customer";
 		List<List<String>> result = esql.executeQueryAndReturnResult(getMaxId);
@@ -465,7 +470,7 @@ public class AirlineManagement {
 		String insertCustomer = String.format(
 		   "INSERT INTO Customer (CustomerID, FirstName, LastName, Gender, DOB, Address, Phone, Zip) " + 
 		   "VALUES (%d, '%s', '%s', '%s', DATE '%s', '%s', '%s', '%s')",
-		   newId, firstName, lastName, gender, birth, address, phoneNumber, zip
+		    newId, firstName, lastName, gender, birth, address, phoneNumber, zip
 		);
 		esql.executeUpdate(insertCustomer);
 		System.out.println("Customer created with ID: " + newId);
@@ -477,8 +482,8 @@ public class AirlineManagement {
 	      int newPilotID = Integer.parseInt(pilotResult.get(0).get(0)) + 1;
 	      String pilotId = String.format("P%03d", newPilotID);
 
-	      System.out.print("Enter Full Pilot Name: ");
-	      String pilotName = in.readLine().trim();
+          String pilotName = promptForValidFullName(in, "Pilot");
+          if (pilotName == null) return;
 
 	      String insertPilot = String.format(
 		  "INSERT INTO Pilot (PilotID, Name) VALUES ('%s', '%s')", 
@@ -494,8 +499,9 @@ public class AirlineManagement {
 	     int newTechID = Integer.parseInt(techResult.get(0).get(0)) + 1;
 	     String techID = String.format("T%03d", newTechID);
 
-	     System.out.print("Enter Full Technician Name: ");
-	     String techName = in.readLine().trim();
+         String techName = promptForValidFullName(in, "Technician");
+         if (techName == null) return;
+	    
 	     String insertTechnician = String.format(
 	 	 "INSERT INTO Technician (TechnicianID, Name) VALUES ('%s', '%s')",
 	         techID, techName
@@ -877,118 +883,186 @@ public static String LogIn(AirlineManagement esql) {
     }
 }//end ViewOrderHistory
 
-   public static void ViewReservationDetails(AirlineManagement esql) {
+public static void ViewReservationDetails(AirlineManagement esql) {
     try {
-	System.out.print("Enter Reservation Number: ");
-	String reservationID = in.readLine().trim();
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 
-	String query = String.format( 
-	    "SELECT c.FirstName, c.LastName, c.Gender, c.DOB, c.Address, c.Phone, c.Zip " +
-	    "FROM Reservation r JOIN Customer c ON r.CustomerID = c.CustomerID " +
-	    "WHERE r.ReservationID = '%s'", reservationID
-	);
+        String resId = promptForValidReservationID(in);
+        if (resId == null) return;
 
-	List<List<String>> result = esql.executeQueryAndReturnResult(query);
-
-	if (result.isEmpty()) {
-	   System.out.println("No travelers found under reservation " + reservationID);
-	}
-	else {
-	   for (List<String> row : result) {
-	       System.out.printf("Name: %s %s | Gender: %s | DOB %s\n", row.get(0), row.get(1), row.get(2), row.get(3));
-	       System.out.printf("Address: %s | Phone: %s | Zip: %s\n\n", row.get(4), row.get(5), row.get(6));
-	   }
-	}
-    } catch (Exception e) {
-	   System.err.println("Error retrieving reservation details: " + e.getMessage());
-    }
-   }
-
-   public static void GetPlaneInformation(AirlineManagement esql) {
-    try {
-	System.out.print("Enter Plane ID: ");
-	String planeID = in.readLine().trim();
-
-	String query = String.format(
-	    "SELECT Make, Model, (2025 - Year) AS Age, LastRepairDate " +
-	    "FROM Plane WHERE PlaneID = '%s'", planeID
-	);
-
-	List<List<String>> result = esql.executeQueryAndReturnResult(query);
-
-	if (result.isEmpty()) {
-	   System.out.println("Entered Plane was not found.");
-	}
-	else {
-	   List<String> row = result.get(0);
-	   System.out.printf("Make: %s | Model: %s | Age: %s years| Last Repair: %s\n",
-	       row.get(0), row.get(1), row.get(2), row.get(3));
-	}
-    } catch (Exception e) {
-	   System.err.println("Error retrieving plane info: " + e.getMessage());
-    }
-   }
-
-   public static void ViewTechnicianRepairs(AirlineManagement esql) {
-    try {
-	System.out.print("Enter a Technician ID: "); 
-	String technicianID = in.readLine().trim().toUpperCase();
-
-	String query = String.format(
-	   "SELECT RepairID, PlaneID, RepairCode, RepairDate " +
-	   "FROM Repair WHERE TechnicianID = '%s' ORDER BY RepairDate DESC", technicianID
-	);
-
-	List<List<String>> result = esql.executeQueryAndReturnResult(query);
-
-	if (result.isEmpty()) {
-           System.out.println("No repairs found under Technician ID: " + technicianID);
-	}
-	else {
-	   System.out.printf("%-10s %-10s $-15s %-12s\n", "RepairID", "PlaneID", "RepairCode", "RepairDate");
-	   for (List<String> row : result) {
-	       System.out.printf("%-10s %-10s %-15s %-12s\n", row.get(0), row.get(1), row.get(2), row.get(3));
-	   }
-	}
-    } catch (Exception e) {
-	   System.err.println("Error retrieving repair list: " + e.getMessage());
-    }
-   }
-
- public static void ViewPlaneRepairs(AirlineManagement esql) {
-    try {
-        System.out.print("Enter Plane ID: ");
-        String planeId = in.readLine().trim();
-
-        System.out.print("Enter Start Date (YYYY-MM-DD): ");
-        String startDate = in.readLine().trim();
-
-        System.out.print("Enter End Date (YYYY-MM-DD): ");
-        String endDate = in.readLine().trim();
-
-        String query = String.format(
-            "SELECT RepairDate, RepairCode FROM Repair " +
-            "WHERE PlaneID = '%s' AND RepairDate BETWEEN DATE '%s' AND DATE '%s' " +
-            "ORDER BY RepairDate",
-            planeId, startDate, endDate
-        );
+        // Find the reservation and customer info
+        String query =
+            "SELECT c.FirstName, c.LastName, c.Gender, c.DOB, c.Address, c.Phone, c.Zip " +
+            "FROM Reservation r " +
+            "JOIN Customer c ON r.CustomerID = c.CustomerID " +
+            "WHERE r.ReservationID = '" + resId + "'";
 
         List<List<String>> result = esql.executeQueryAndReturnResult(query);
 
-        if (result.isEmpty()) {
-            System.out.println("No repairs found for plane " + planeId + " in that date range.");
+        if (result.size() == 0) {
+            System.out.println("No reservation found with ID " + resId + ".");
         } else {
-            System.out.printf("%-12s %-15s\n", "RepairDate", "RepairCode");
+            List<String> row = result.get(0);
+            System.out.println("Traveler information for reservation " + resId + ":");
+            System.out.println("First Name : " + row.get(0));
+            System.out.println("Last Name  : " + row.get(1));
+            System.out.println("Gender     : " + row.get(2));
+            System.out.println("DOB        : " + row.get(3));
+            System.out.println("Address    : " + row.get(4));
+            System.out.println("Phone      : " + row.get(5));
+            System.out.println("Zip Code   : " + row.get(6));
+        }
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}
+
+public static void ViewPlaneInfo(AirlineManagement esql) {
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        String planeId = promptForValidPlaneID(in);
+        if (planeId == null) return;
+
+        String query =
+            "SELECT Make, Model, Year, LastRepairDate FROM Plane WHERE PlaneID = '" + planeId + "'";
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+        if (result.size() == 0) {
+            System.out.println("No plane found with ID " + planeId + ".");
+            return;
+        }
+
+        List<String> row = result.get(0);
+        String make = row.get(0);
+        String model = row.get(1);
+        String yearStr = row.get(2);
+        String lastRepairDate = row.get(3);
+
+        int currentYear = java.time.LocalDate.now().getYear();
+        int year = Integer.parseInt(yearStr);
+        int age = currentYear - year;
+
+        System.out.println("Plane Information:");
+        System.out.println("Plane ID       : " + planeId);
+        System.out.println("Make           : " + make);
+        System.out.println("Model          : " + model);
+        System.out.println("Year           : " + year);
+        System.out.println("Age            : " + age + " year(s)");
+        System.out.println("Last Repair    : " + lastRepairDate);
+
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}
+
+    public static void ViewRepairsByTechnician(AirlineManagement esql) {
+        try {
+            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+            String techId = promptForValidTechnicianID(in);
+            if (techId == null) return;
+
+            String query =
+                "SELECT RepairID, PlaneID, RepairCode, RepairDate " +
+                "FROM Repair WHERE TechnicianID = '" + techId + "' " +
+                "ORDER BY RepairDate";
+
+            List<List<String>> result = esql.executeQueryAndReturnResult(query);
+            if (result.size() == 0) {
+                System.out.println("No repairs found for technician " + techId + ".");
+            } else {
+                System.out.println("Repairs performed by technician " + techId + ":");
+                System.out.println("| RepairID | PlaneID | RepairCode | RepairDate  |");
+                System.out.println("|----------|---------|------------|-------------|");
+                for (List<String> row : result) {
+                    System.out.printf("| %-8s | %-7s | %-10s | %-11s |\n",
+                            row.get(0), row.get(1), row.get(2), row.get(3));
+                }
+            }
+        } catch(Exception e) {
+            System.err.println(e.getMessage());
+        }
+    }
+
+    public static void ViewRepairsForPlaneInRange(AirlineManagement esql) {
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        String planeId = promptForValidPlaneID(in);
+        if (planeId == null) return;
+
+        System.out.println("Enter start date of range:");
+        String startDate = promptForValidDate(in);
+        if (startDate == null) return;
+
+        System.out.println("Enter end date of range:");
+        String endDate = promptForValidDate(in);
+        if (endDate == null) return;
+
+        String query =
+            "SELECT RepairDate, RepairCode " +
+            "FROM Repair " +
+            "WHERE PlaneID = '" + planeId + "' " +
+            "AND RepairDate BETWEEN DATE '" + startDate + "' AND DATE '" + endDate + "' " +
+            "ORDER BY RepairDate";
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+        if (result.size() == 0) {
+            System.out.println("No repairs for plane " + planeId + " between " + startDate + " and " + endDate + ".");
+        } else {
+            System.out.println("Repairs for " + planeId + " from " + startDate + " to " + endDate + ":");
+            System.out.println("| RepairDate  | RepairCode |");
+            System.out.println("|-------------|------------|");
             for (List<String> row : result) {
-                System.out.printf("%-12s %-15s\n", row.get(0), row.get(1));
+                System.out.printf("| %-11s | %-10s |\n", row.get(0), row.get(1));
             }
         }
-    } catch (Exception e) {
-        System.err.println("Error retrieving plane repairs: " + e.getMessage());
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
     }
- }
+}
 
- public static void SearchFlights(AirlineManagement esql) {
+public static void ViewFlightStatsInRange(AirlineManagement esql) {
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+        String flightNum = promptForValidFlightNumber(in);
+        if (flightNum == null) return;
+
+        System.out.println("Enter start date of range:");
+        String startDate = promptForValidDate(in);
+        if (startDate == null) return;
+
+        System.out.println("Enter end date of range:");
+        String endDate = promptForValidDate(in);
+        if (endDate == null) return;
+
+        String query =
+            "SELECT COUNT(CASE WHEN DepartedOnTime THEN 1 END) AS NumDeparted, " +
+            "       COUNT(CASE WHEN ArrivedOnTime THEN 1 END) AS NumArrived, " +
+            "       SUM(SeatsSold) AS TotalSold, " +
+            "       SUM(SeatsTotal - SeatsSold) AS TotalUnsold " +
+            "FROM FlightInstance " +
+            "WHERE FlightNumber = '" + flightNum + "' " +
+            "  AND FlightDate BETWEEN DATE '" + startDate + "' AND DATE '" + endDate + "'";
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+        if (result.size() == 0 || (result.get(0).get(0) == null && result.get(0).get(1) == null)) {
+            System.out.println("No statistics found for flight " + flightNum + " in the given range.");
+        } else {
+            List<String> row = result.get(0);
+            System.out.println("Flight Statistics for " + flightNum + " (" + startDate + " to " + endDate + "):");
+            System.out.println("Number of days departed on time:     " + (row.get(0) == null ? "0" : row.get(0)));
+            System.out.println("Number of days arrived on time:      " + (row.get(1) == null ? "0" : row.get(1)));
+            System.out.println("Total tickets sold:          " + (row.get(2) == null ? "0" : row.get(2)));
+            System.out.println("Total tickets unsold:        " + (row.get(3) == null ? "0" : row.get(3)));
+        }
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}
+
+
+
+   public static void SearchFlights(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
          // Use the promptForValidCity helper method to ensure valid input
@@ -1036,77 +1110,171 @@ public static String LogIn(AirlineManagement esql) {
 public static void MakeReservation(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter your CustomerID: ");
-        String custId = in.readLine().trim();
-        System.out.print("Enter Flight Number: ");
-        String flightNum = in.readLine().trim();
-        System.out.print("Enter Flight Date (yyyy-mm-dd): ");
-        String flightDate = in.readLine().trim();
 
-        // Find the FlightInstanceID
+        String custId = promptForValidCustomerID(in);
+        if (custId == null) return;
+
+        String flightNum = promptForValidFlightNumber(in);
+        if (flightNum == null) return;
+
+        String flightDate = promptForValidDate(in);
+        if (flightDate == null) return;
+
+        // Find the FlightInstanceID and seat info
         String findInstance = "SELECT FlightInstanceID, SeatsTotal, SeatsSold FROM FlightInstance " +
                               "WHERE FlightNumber = '" + flightNum + "' " +
                               "AND FlightDate = DATE '" + flightDate + "'";
         List<List<String>> result = esql.executeQueryAndReturnResult(findInstance);
 
-        if(result.isEmpty()) {
+        if (result.isEmpty()) {
             System.out.println("No flight instance found.");
             return;
         }
+
+        // // Check if flight date is in the past
+        // java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+        // java.sql.Date flightSqlDate = java.sql.Date.valueOf(flightDate);
+
+        // if (flightSqlDate.before(today)) {
+        //     System.out.println("Sorry, this flight has already flown. No further reservations or waitlist allowed.");
+        //     return;
+        // }
+
+        // // Optionally, also check DepartedOnTime, if you use that as a flown marker:
+        // // (Assuming result.get(0).get(3) is DepartedOnTime)
+        // if (result.get(0).size() > 3 && result.get(0).get(3) != null && result.get(0).get(3).equals("t")) {
+        //     System.out.println("Sorry, this flight has already departed. No further reservations or waitlist allowed.");
+        //     return;
+        // }
+
         String instanceId = result.get(0).get(0);
         int seatsTotal = Integer.parseInt(result.get(0).get(1));
         int seatsSold = Integer.parseInt(result.get(0).get(2));
 
+        // New flown status check:
+        String checkFlown = "SELECT 1 FROM Reservation WHERE FlightInstanceID = " + instanceId + " AND Status = 'flown' LIMIT 1";
+        List<List<String>> flownCheck = esql.executeQueryAndReturnResult(checkFlown);
+        if (flownCheck.size() > 0) {
+            System.out.println("Sorry, this flight is already flown. No further reservations or waitlist allowed.");
+            return;
+        }
+
         String status = (seatsSold < seatsTotal) ? "reserved" : "waitlist";
 
-        // Insert into Reservation (ReservationID can be generated or auto)
-        String insertRes = "INSERT INTO Reservation (CustomerID, FlightInstanceID, Status) " +
-                           "VALUES (" + custId + ", " + instanceId + ", '" + status + "')";
+       // Generate a new unique ReservationID (assumes format R0001, R0002, etc.)
+        String getMaxId = "SELECT COALESCE(MAX(ReservationID), 'R0000') FROM Reservation";
+        List<List<String>> maxIdResult = esql.executeQueryAndReturnResult(getMaxId);
+        String maxId = maxIdResult.get(0).get(0);
+        int newNum = Integer.parseInt(maxId.replaceAll("[^0-9]", "")) + 1;
+        if (newNum > 9999) {
+            System.out.println("Error: Maximum number of reservations reached (R9999). Cannot create new reservation.");
+            return;
+        }
+        String newReservationId = String.format("R%04d", newNum);
+
+
+        String insertRes = String.format(
+            "INSERT INTO Reservation (ReservationID, CustomerID, FlightInstanceID, Status) " +
+            "VALUES ('%s', %s, %s, '%s')",
+            newReservationId, custId, instanceId, status
+        );
         esql.executeUpdate(insertRes);
 
-        System.out.println("Reservation " + (status.equals("reserved") ? "confirmed!" : "added to waitlist!"));
+        System.out.println("Reservation ID: " + newReservationId +
+            (status.equals("reserved") ? " - Confirmed!" : " - Added to waitlist!"));
 
     } catch(Exception e) {
         System.err.println(e.getMessage());
     }
 }
+
 
 public static void MaintenanceRequest(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter your PilotID: ");
-        String pilotId = in.readLine().trim();
-        System.out.print("Enter PlaneID: ");
-        String planeId = in.readLine().trim();
-        System.out.print("Enter Repair Code: ");
-        String repairCode = in.readLine().trim();
-        System.out.print("Enter Request Date (yyyy-mm-dd): ");
-        String requestDate = in.readLine().trim();
+        String pilotId = promptForValidPilotID(in);
+        if (pilotId == null) return;
 
-        String insertReq = "INSERT INTO MaintenanceRequest (PlaneID, RepairCode, RequestDate, PilotID) " +
-                           "VALUES ('" + planeId + "', '" + repairCode + "', DATE '" + requestDate + "', '" + pilotId + "')";
+        String planeId = promptForValidPlaneID(in);
+        if (planeId == null) return;
+
+        String repairCode = promptForValidRepairCode(in);
+        if (repairCode == null) return;
+
+        String requestDate = promptForValidDate(in);
+        if (requestDate == null) return;
+
+        // Generate unique RequestID
+        String getMaxId = "SELECT COALESCE(MAX(RequestID), 0) FROM MaintenanceRequest";
+        List<List<String>> maxIdResult = esql.executeQueryAndReturnResult(getMaxId);
+        int newRequestId = 1;
+        if (maxIdResult.size() > 0) {
+            newRequestId = Integer.parseInt(maxIdResult.get(0).get(0)) + 1;
+        }
+
+        String insertReq = String.format(
+            "INSERT INTO MaintenanceRequest (RequestID, PlaneID, RepairCode, RequestDate, PilotID) " +
+            "VALUES (%d, '%s', '%s', DATE '%s', '%s')",
+            newRequestId, planeId, repairCode, requestDate, pilotId
+        );
         esql.executeUpdate(insertReq);
-        System.out.println("Maintenance request submitted!");
+        System.out.println("Maintenance request submitted! Request ID: " + newRequestId);
 
     } catch(Exception e) {
         System.err.println(e.getMessage());
     }
 }
+
+
 
 public static void ViewRepairs(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter your TechnicianID: ");
-        String techId = in.readLine().trim();
+        String planeId = promptForValidPlaneID(in);
+        if (planeId == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
 
-        String query = "SELECT RepairID, PlaneID, RepairCode, RepairDate " +
-                       "FROM Repair WHERE TechnicianID = '" + techId + "'";
-        esql.executeQueryAndPrintResult(query);
+        System.out.println("Enter start date of range:");
+        String startDate = promptForValidDate(in);
+        if (startDate == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        System.out.println("Enter end date of range:");
+        String endDate = promptForValidDate(in);
+        if (endDate == null) {
+            System.out.println("Returning to main menu.");
+            return;
+        }
+
+        // Query all repairs for this plane in the given date range
+        String query =
+            "SELECT RepairDate, RepairCode, TechnicianID " +
+            "FROM Repair " +
+            "WHERE PlaneID = '" + planeId + "' " +
+            "AND RepairDate BETWEEN DATE '" + startDate + "' AND DATE '" + endDate + "' " +
+            "ORDER BY RepairDate";
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+        if (result.size() == 0) {
+            System.out.println("No repairs found for plane " + planeId + " between " + startDate + " and " + endDate + ".");
+        } else {
+            System.out.println("Repairs for " + planeId + " from " + startDate + " to " + endDate + ":");
+            System.out.println("| RepairDate  | RepairCode | TechnicianID |");
+            System.out.println("|-------------|------------|--------------|");
+            for (List<String> row : result) {
+                System.out.printf("| %-11s | %-10s | %-12s |\n", row.get(0), row.get(1), row.get(2));
+            }
+        }
 
     } catch(Exception e) {
         System.err.println(e.getMessage());
     }
 }
+
 
 public static void AddRepairRecord(AirlineManagement esql) {
     try {
@@ -1363,6 +1531,133 @@ public static String promptForValidFlightNumber(BufferedReader in) throws IOExce
     }
     return null;
 }
+
+public static String promptForValidGender(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Gender (M/F/O): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.equals("M") || input.equals("F") || input.equals("O")) {
+            return input;
+        }
+        System.out.println("Invalid gender! Enter M, F, or O only.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidPhone(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Phone # (format: 123-456-7890): ");
+        String input = in.readLine().trim();
+        if (input.matches("\\d{3}-\\d{3}-\\d{4}")) {
+            return input;
+        }
+        System.out.println("Invalid phone number! Use format: 123-456-7890.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidZip(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Zip Code (5 digits): ");
+        String input = in.readLine().trim();
+        if (input.matches("\\d{5}")) {
+            return input;
+        }
+        System.out.println("Invalid zip code! Use exactly 5 digits, e.g., 92507.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidAddress(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Address: ");
+        String input = in.readLine().trim();
+        if (input.length() >= 5 && input.length() <= 100 &&
+            input.matches("[A-Za-z0-9.,'\\- ]+")) {
+            return input;
+        }
+        System.out.println("Invalid address! Use letters, numbers, comma, dot, dash, and spaces. 5–100 chars.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidPlaneID(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Plane ID (e.g., PL001): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("PL\\d{3}")) {
+            return input;
+        }
+        System.out.println("Invalid Plane ID! Use format PLXXX, e.g., PL001.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidRepairCode(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Repair Code (RC001–RC999): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("RC\\d{3}")) {
+            int num = Integer.parseInt(input.substring(2));
+            if (num >= 1 && num <= 999) {
+                return "RC" + String.format("%03d", num);
+            }
+        }
+        System.out.println("Invalid Repair Code! Use format RCXXX, e.g., RC004.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
+public static String promptForValidReservationID(BufferedReader in) throws IOException {
+    int maxTries = 5;
+    for (int attempt = 1; attempt <= maxTries; attempt++) {
+        System.out.print("Reservation ID (R0001–R9999): ");
+        String input = in.readLine().trim().toUpperCase();
+        if (input.matches("R\\d{4}")) {
+            int num = Integer.parseInt(input.substring(1));
+            if (num >= 1 && num <= 9999) {
+                return String.format("R%04d", num);
+            }
+        }
+        System.out.println("Invalid Reservation ID! Use format R0001–R9999, e.g., R0008.");
+        if (attempt == maxTries) {
+            System.out.println("Too many invalid attempts. Logging out.");
+            return null;
+        }
+    }
+    return null;
+}
+
 
 public static void FindTicketCost(AirlineManagement esql) {
     try {
