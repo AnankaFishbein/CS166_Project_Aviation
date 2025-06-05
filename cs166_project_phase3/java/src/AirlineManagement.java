@@ -324,6 +324,10 @@ public class AirlineManagement {
          System.out.println("3. View Flight Status");
          System.out.println("4. View Flights of the day");
          System.out.println("5. View Full Order ID History");
+	 System.out.println("6. View Reservation Details");
+	 System.out.println("7. Get Plane Information");
+	 System.out.println("8. List Technician Repairs");
+	 System.out.println("9. View Plane Repairs by Date");
          // ...more management options as needed...
       }
       if (role.equalsIgnoreCase("Customer")) {
@@ -340,6 +344,7 @@ public class AirlineManagement {
       if (role.equalsIgnoreCase("Technician")) {
          System.out.println("16. View Repairs");
          System.out.println("17. Add Repair Record");
+	 System.out.println("18. View Pilot Requests");
          // ...more technician options...
       }
       System.out.println("20. Log out");
@@ -353,6 +358,10 @@ public class AirlineManagement {
          case 3: if (role.equalsIgnoreCase("Manager")) ViewFlightStatus(esql); else notAuthorized(); break;
          case 4: if (role.equalsIgnoreCase("Manager")) ViewFlightsOfTheDay(esql); else notAuthorized(); break;
          case 5: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+	 case 6: if (role.equalsIgnoreCase("Manager")) ViewReservationDetails(esql); else notAuthorized(); break;
+         case 7: if (role.equalsIgnoreCase("Manager")) GetPlaneInformation(esql); else notAuthorized(); break;
+	 case 8: if (role.equalsIgnoreCase("Manager")) ViewTechnicianRepairs(esql); else notAuthorized(); break;
+	 case 9: if (role.equalsIgnoreCase("Manager")) ViewPlaneRepairs(esql); else notAuthorized(); break;
          // Add more management functions as needed
 
          // Customer
@@ -369,6 +378,7 @@ public class AirlineManagement {
          // Technician
          case 16: if (role.equalsIgnoreCase("Technician")) ViewRepairs(esql); else notAuthorized(); break;
          case 17: if (role.equalsIgnoreCase("Technician")) AddRepairRecord(esql); else notAuthorized(); break;
+	 case 18: if (role.equalsIgnoreCase("Technician")) ViewPilotRequests(esql); else notAuthorized(); break;
          // Add more technician functions as needed
 
          // Log out
@@ -467,7 +477,7 @@ public class AirlineManagement {
 	      int newPilotID = Integer.parseInt(pilotResult.get(0).get(0)) + 1;
 	      String pilotId = String.format("P%03d", newPilotID);
 
-	      System.out.print("Enter Pilot Name: ");
+	      System.out.print("Enter Full Pilot Name: ");
 	      String pilotName = in.readLine().trim();
 
 	      String insertPilot = String.format(
@@ -482,16 +492,16 @@ public class AirlineManagement {
 	     String getMaxTech = "SELECT COALESCE(MAX(CAST(SUBSTRING(TechnicianID, 2) AS INTEGER)), 0) FROM Technician";
 	     List<List<String>> techResult = esql.executeQueryAndReturnResult(getMaxTech);
 	     int newTechID = Integer.parseInt(techResult.get(0).get(0)) + 1;
-	     String techId = String.format("T%03d", newTechID);
+	     String techID = String.format("T%03d", newTechID);
 
-	     System.out.print("Enter Technician Name: ");
+	     System.out.print("Enter Full Technician Name: ");
 	     String techName = in.readLine().trim();
 	     String insertTechnician = String.format(
 	 	 "INSERT INTO Technician (TechnicianID, Name) VALUES ('%s', '%s')",
-	         techId, techName
+	         techID, techName
 	     );
     	     esql.executeUpdate(insertTechnician);
-	     System.out.println("Technician created with ID: " + techId);
+	     System.out.println("Technician created with ID: " + techID);
              break;
 
 	default:
@@ -867,7 +877,118 @@ public static String LogIn(AirlineManagement esql) {
     }
 }//end ViewOrderHistory
 
-   public static void SearchFlights(AirlineManagement esql) {
+   public static void ViewReservationDetails(AirlineManagement esql) {
+    try {
+	System.out.print("Enter Reservation Number: ");
+	String reservationID = in.readLine().trim();
+
+	String query = String.format( 
+	    "SELECT c.FirstName, c.LastName, c.Gender, c.DOB, c.Address, c.Phone, c.Zip " +
+	    "FROM Reservation r JOIN Customer c ON r.CustomerID = c.CustomerID " +
+	    "WHERE r.ReservationID = '%s'", reservationID
+	);
+
+	List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+	if (result.isEmpty()) {
+	   System.out.println("No travelers found under reservation " + reservationID);
+	}
+	else {
+	   for (List<String> row : result) {
+	       System.out.printf("Name: %s %s | Gender: %s | DOB %s\n", row.get(0), row.get(1), row.get(2), row.get(3));
+	       System.out.printf("Address: %s | Phone: %s | Zip: %s\n\n", row.get(4), row.get(5), row.get(6));
+	   }
+	}
+    } catch (Exception e) {
+	   System.err.println("Error retrieving reservation details: " + e.getMessage());
+    }
+   }
+
+   public static void GetPlaneInformation(AirlineManagement esql) {
+    try {
+	System.out.print("Enter Plane ID: ");
+	String planeID = in.readLine().trim();
+
+	String query = String.format(
+	    "SELECT Make, Model, (2025 - Year) AS Age, LastRepairDate " +
+	    "FROM Plane WHERE PlaneID = '%s'", planeID
+	);
+
+	List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+	if (result.isEmpty()) {
+	   System.out.println("Entered Plane was not found.");
+	}
+	else {
+	   List<String> row = result.get(0);
+	   System.out.printf("Make: %s | Model: %s | Age: %s years| Last Repair: %s\n",
+	       row.get(0), row.get(1), row.get(2), row.get(3));
+	}
+    } catch (Exception e) {
+	   System.err.println("Error retrieving plane info: " + e.getMessage());
+    }
+   }
+
+   public static void ViewTechnicianRepairs(AirlineManagement esql) {
+    try {
+	System.out.print("Enter a Technician ID: "); 
+	String technicianID = in.readLine().trim().toUpperCase();
+
+	String query = String.format(
+	   "SELECT RepairID, PlaneID, RepairCode, RepairDate " +
+	   "FROM Repair WHERE TechnicianID = '%s' ORDER BY RepairDate DESC", technicianID
+	);
+
+	List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+	if (result.isEmpty()) {
+           System.out.println("No repairs found under Technician ID: " + technicianID);
+	}
+	else {
+	   System.out.printf("%-10s %-10s $-15s %-12s\n", "RepairID", "PlaneID", "RepairCode", "RepairDate");
+	   for (List<String> row : result) {
+	       System.out.printf("%-10s %-10s %-15s %-12s\n", row.get(0), row.get(1), row.get(2), row.get(3));
+	   }
+	}
+    } catch (Exception e) {
+	   System.err.println("Error retrieving repair list: " + e.getMessage());
+    }
+   }
+
+ public static void ViewPlaneRepairs(AirlineManagement esql) {
+    try {
+        System.out.print("Enter Plane ID: ");
+        String planeId = in.readLine().trim();
+
+        System.out.print("Enter Start Date (YYYY-MM-DD): ");
+        String startDate = in.readLine().trim();
+
+        System.out.print("Enter End Date (YYYY-MM-DD): ");
+        String endDate = in.readLine().trim();
+
+        String query = String.format(
+            "SELECT RepairDate, RepairCode FROM Repair " +
+            "WHERE PlaneID = '%s' AND RepairDate BETWEEN DATE '%s' AND DATE '%s' " +
+            "ORDER BY RepairDate",
+            planeId, startDate, endDate
+        );
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+        if (result.isEmpty()) {
+            System.out.println("No repairs found for plane " + planeId + " in that date range.");
+        } else {
+            System.out.printf("%-12s %-15s\n", "RepairDate", "RepairCode");
+            for (List<String> row : result) {
+                System.out.printf("%-12s %-15s\n", row.get(0), row.get(1));
+            }
+        }
+    } catch (Exception e) {
+        System.err.println("Error retrieving plane repairs: " + e.getMessage());
+    }
+ }
+
+ public static void SearchFlights(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
          // Use the promptForValidCity helper method to ensure valid input
@@ -1006,6 +1127,37 @@ public static void AddRepairRecord(AirlineManagement esql) {
 
     } catch(Exception e) {
         System.err.println(e.getMessage());
+    }
+}
+
+public static void ViewPilotRequests(AirlineManagement esql) {
+    try {
+	System.out.print("Please enter a Pilot ID: ");
+	String pilotId = in.readLine().trim().toUpperCase();
+
+	String query = String.format(
+		       	"SELECT RequestID, PlaneID, RepairCode, RequestDate " +
+		       "FROM MaintenanceRequest " +
+		       "WHERE PilotID = '%s' " +
+		       "ORDER BY RequestDate DESC",
+		       pilotId
+	);
+
+	List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+	if (result.isEmpty()) {
+	   System.out.println("No maintence requests found for pilot ID " + pilotId + ". Please check your input."); 
+	}
+	else {
+	   System.out.println("Maintenance Requests for Pilot " + pilotId + ":");
+	   System.out.printf("%-12s $-10s $-15s %-12s\n", "RequestID", "PlaneID", "RepairCode", "RequestDate");
+	   for (List<String> row : result) {
+	        System.out.printf("%-12s %-10s %-15s %-12s\n",
+		row.get(0), row.get(1), row.get(2), row.get(3));
+	   }
+	}
+    } catch (Exception e) {
+	   System.err.println("Error viewing maintenance requests: " + e.getMessage());
     }
 }
   
