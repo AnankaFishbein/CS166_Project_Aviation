@@ -417,72 +417,72 @@ public class AirlineManagement {
      try {
 	BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 
-	system.out.println("Select user type:");
-	system.out.println("1. Customer");
-	system.out.println("2. Pilot");
-	system.out.println("3. Technician");
-	system.out.println("Enter choice: ");
-	string choice = in.readLine().trim();
+	System.out.println("Select user type:");
+	System.out.println("1. Customer");
+	System.out.println("2. Pilot");
+	System.out.println("3. Technician");
+	System.out.println("Enter choice: ");
+	String choice = in.readLine().trim();
 
 	switch(choice) {
 	   case "1":
-		system.out.print("Enter First Name: ");
-		string firstName = in.readLine().trim();
-		system.out.print("Enter Last Name: ");
-		string lastName = in.readLine().trim();
-		system.out.print("Enter Gender: ");
-		string gender = in.readLine().trim();
-		system.out.print("Enter Date of Birth (YYYY-MM-DD): ");
-		string birth = in.readLine().trim();
-		system.out.print("Enter Address: ");
-		string address = in.readLine().trim();
-		system.out.print("Enter Phone #: ");
-		string phoneNumber = in.readLine().trim();
-		system.out.print("Enter Zip Code: ");
-		string zip = in.readLine().trim();
+		System.out.print("Enter First Name: ");
+		String firstName = in.readLine().trim();
+		System.out.print("Enter Last Name: ");
+		String lastName = in.readLine().trim();
+		System.out.print("Enter Gender: ");
+		String gender = in.readLine().trim();
+		System.out.print("Enter Date of Birth (YYYY-MM-DD): ");
+		String birth = in.readLine().trim();
+		System.out.print("Enter Address: ");
+		String address = in.readLine().trim();
+		System.out.print("Enter Phone #: ");
+		String phoneNumber = in.readLine().trim();
+		System.out.print("Enter Zip Code: ");
+		String zip = in.readLine().trim();
 
-		string insertCustomer = string.format(
+		String insertCustomer = string.format(
 		    "INSERT INTO Customer (FirstName, LastName, Gender, DOB, Address, Phone, Zip) ",
 		    "VALUES ('%s', '%s', '%s', DATE '%s', '%s', '%s', '%s')",
 		    firstName, lastName, gender, birth, address, phoneNumber, zip
 		);
 		esql.executeUpdate(insertCustomer);
-		system.out.println("Customer created.");
+		System.out.println("Customer created.");
 		break;
 
 	 case "2":
-	      system.out.print("Enter unique Pilot ID: ");
-      	      string pilotId = in.readLine().trim();
-	      system.out.print("Enter Pilot Name: ");
-	      string pilotName = in.readLine().trim();
+	      System.out.print("Enter unique Pilot ID: ");
+      	      String pilotId = in.readLine().trim();
+	      System.out.print("Enter Pilot Name: ");
+	      String pilotName = in.readLine().trim();
 
-	      string insertPilot = string.format(
+	      String insertPilot = string.format(
 		  "INSERT INTO Pilot (PilotID, Name) VALUES ('%s', '%s')", 
     		  pilotId, pilotName
  	      );
 	      esql.executeUpdate(insertPilot);
-	      system.out.println("Pilot created.");
+	      System.out.println("Pilot created.");
 	      break;
 
 	case "3":	      
-	     system.out.print("Enter unique Technician ID: ");
-	     string techId = in.readLine().trim();
-	     system.out.print("Enter Technician Name: ");
-	     string techName = in.readLine().trim();
+	     System.out.print("Enter unique Technician ID: ");
+	     String techId = in.readLine().trim();
+	     System.out.print("Enter Technician Name: ");
+	     String techName = in.readLine().trim();
 
-	     string insertTechnician = string.format(
+	     String insertTechnician = string.format(
 	 	 "INSERT INTO Technician (TechnicianID, Name) VALUES ('%s', '%s')",
 	         techId, techName
 	     );
     	     esql.executeUpdate(insertTechnician);
-	     system.out.println("Technician created.");
+	     System.out.println("Technician created.");
              break;
 
 	default:
-	   system.out.println("Invalid choice. Returning to main menu.");
+	   System.out.println("Invalid choice. Returning to main menu.");
       }
      } catch (Exception e) {
-	  system.err.println("Error creating user: " + e.getMessage());
+	  System.err.println("Error creating user: " + e.getMessage());
      }	  
 
    }//end CreateUser
