@@ -325,15 +325,18 @@ public class AirlineManagement {
          System.out.println("4. View Flights of the day");
          System.out.println("5. View Full Order ID History");
          System.out.println("6. View Reservation Details");
-         System.out.println("7. View Plane Info");
-         System.out.println("8. View Repairs By Technician");
-         System.out.println("9. View Repairs For Plane by Date Range");
+         System.out.println("7. Get Plane Information");
+         System.out.println("8. List Technician Repairs");
+         System.out.println("9. View Plane Repairs by Date");
          System.out.println("10. View Flight Stats by Date Range");
          // ...more management options as needed...
       }
+     
       if (role.equalsIgnoreCase("Customer")) {
-         System.out.println("11. Search Flights");
-         System.out.println("12. Make Reservation");
+         System.out.println("10. Search Flights");
+         System.out.println("11. Make Reservation");
+         System.out.println("12. Find Ticket Cost");
+	       System.out.println("13. Find Airplane Type");
          // ...more customer options...
       }
       if (role.equalsIgnoreCase("Pilot")) {
@@ -343,6 +346,7 @@ public class AirlineManagement {
       if (role.equalsIgnoreCase("Technician")) {
          System.out.println("16. View Repairs");
          System.out.println("17. Add Repair Record");
+	 System.out.println("18. View Pilot Requests");
          // ...more technician options...
       }
       System.out.println("20. Log out");
@@ -356,16 +360,20 @@ public class AirlineManagement {
          case 3: if (role.equalsIgnoreCase("Manager")) ViewFlightStatus(esql); else notAuthorized(); break;
          case 4: if (role.equalsIgnoreCase("Manager")) ViewFlightsOfTheDay(esql); else notAuthorized(); break;
          case 5: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+
          case 6: if (role.equalsIgnoreCase("Manager")) ViewReservationDetails(esql); else notAuthorized(); break;
          case 7: if (role.equalsIgnoreCase("Manager")) ViewPlaneInfo(esql); else notAuthorized(); break;
          case 8: if (role.equalsIgnoreCase("Manager")) ViewRepairsByTechnician(esql); else notAuthorized(); break;
          case 9: if (role.equalsIgnoreCase("Manager")) ViewRepairsForPlaneInRange(esql); else notAuthorized(); break;
          case 10: if (role.equalsIgnoreCase("Manager")) ViewFlightStatsInRange(esql); else notAuthorized(); break;
          // Add more management functions as needed
-
+          
          // Customer
-         case 11: if (role.equalsIgnoreCase("Customer")) SearchFlights(esql); else notAuthorized(); break;
-         case 12: if (role.equalsIgnoreCase("Customer")) MakeReservation(esql); else notAuthorized(); break;
+         case 10: if (role.equalsIgnoreCase("Customer")) SearchFlights(esql); else notAuthorized(); break;
+         case 11: if (role.equalsIgnoreCase("Customer")) MakeReservation(esql); else notAuthorized(); break;
+	       case 12: if (role.equalsIgnoreCase("Customer")) FindTicketCost(esql); else notAuthorized(); break;
+	       case 13: if (role.equalsIgnoreCase("Customer")) FindPlaneType(esql); else notAuthorized(); break;
+
          // Add more customer functions as needed
 
          // Pilot
@@ -375,6 +383,7 @@ public class AirlineManagement {
          // Technician
          case 16: if (role.equalsIgnoreCase("Technician")) ViewRepairs(esql); else notAuthorized(); break;
          case 17: if (role.equalsIgnoreCase("Technician")) AddRepairRecord(esql); else notAuthorized(); break;
+	 case 18: if (role.equalsIgnoreCase("Technician")) ViewPilotRequests(esql); else notAuthorized(); break;
          // Add more technician functions as needed
 
          // Log out
@@ -488,17 +497,17 @@ public class AirlineManagement {
 	     String getMaxTech = "SELECT COALESCE(MAX(CAST(SUBSTRING(TechnicianID, 2) AS INTEGER)), 0) FROM Technician";
 	     List<List<String>> techResult = esql.executeQueryAndReturnResult(getMaxTech);
 	     int newTechID = Integer.parseInt(techResult.get(0).get(0)) + 1;
-	     String techId = String.format("T%03d", newTechID);
+	     String techID = String.format("T%03d", newTechID);
 
          String techName = promptForValidFullName(in, "Technician");
          if (techName == null) return;
-
+	    
 	     String insertTechnician = String.format(
 	 	 "INSERT INTO Technician (TechnicianID, Name) VALUES ('%s', '%s')",
-	         techId, techName
+	         techID, techName
 	     );
     	     esql.executeUpdate(insertTechnician);
-	     System.out.println("Technician created with ID: " + techId);
+	     System.out.println("Technician created with ID: " + techID);
              break;
 
 	default:
@@ -1288,6 +1297,37 @@ public static void AddRepairRecord(AirlineManagement esql) {
         System.err.println(e.getMessage());
     }
 }
+
+public static void ViewPilotRequests(AirlineManagement esql) {
+    try {
+	System.out.print("Please enter a Pilot ID: ");
+	String pilotId = in.readLine().trim().toUpperCase();
+
+	String query = String.format(
+		       	"SELECT RequestID, PlaneID, RepairCode, RequestDate " +
+		       "FROM MaintenanceRequest " +
+		       "WHERE PilotID = '%s' " +
+		       "ORDER BY RequestDate DESC",
+		       pilotId
+	);
+
+	List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+	if (result.isEmpty()) {
+	   System.out.println("No maintence requests found for pilot ID " + pilotId + ". Please check your input."); 
+	}
+	else {
+	   System.out.println("Maintenance Requests for Pilot " + pilotId + ":");
+	   System.out.printf("%-12s $-10s $-15s %-12s\n", "RequestID", "PlaneID", "RepairCode", "RequestDate");
+	   for (List<String> row : result) {
+	        System.out.printf("%-12s %-10s %-15s %-12s\n",
+		row.get(0), row.get(1), row.get(2), row.get(3));
+	   }
+	}
+    } catch (Exception e) {
+	   System.err.println("Error viewing maintenance requests: " + e.getMessage());
+    }
+}
   
 public static String promptForValidDate(BufferedReader in) throws IOException {
     int maxTries = 5;
@@ -1619,6 +1659,53 @@ public static String promptForValidReservationID(BufferedReader in) throws IOExc
 }
 
 
+public static void FindTicketCost(AirlineManagement esql) {
+    try {
+	System.out.print("Please enter a Flight Number: ");
+	String flightNum = in.readLine().trim();
+
+	String query = String.format(
+	    "SELECT TicketCost FROM FlightInstance WHERE FlightNumber = '%s' LIMIT 1",
+	    flightNum
+	);
+
+	List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+	if (result.isEmpty()) {
+	    System.out.println("No flight found with that flight number. Please check your input.");
+	}
+	else {
+	    System.out.println("Ticket cost for flight " + flightNum + " is: $" + result.get(0).get(0));
+	}
+    } catch (Exception e) {
+	    System.err.println("Error finding ticket cost: " + e.getMessage());
+    }
+}
+
+public static void FindPlaneType(AirlineManagement esql) {
+    try {
+	System.out.print("Please enter a Flight Number: ");
+	String flightNum = in.readLine().trim();
+
+	String query = String.format(
+	    "SELECT p.Make, p.Model FROM Flight f JOIN Plane p ON f.PlaneID = p.PlaneID " +
+	    "WHERE f.FlightNumber = '%s'",
+	    flightNum
+	);
+
+	List<List<String>> result = esql.executeQueryAndReturnResult(query);
+
+	if (result.isEmpty()) {
+	    System.out.println("No airplane was found for that flight number. Please check your input.");
+	}
+	else {
+	    System.out.println("Plane Make: " + result.get(0).get(0));
+	    System.out.println("Plane Model: " + result.get(0).get(1));
+	}
+    } catch (Exception e) {
+	    System.err.println("Error finding plane info: " + e.getMessage());
+    }
+}
 
 }//end AirlineManagement
 
