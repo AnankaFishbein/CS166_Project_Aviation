@@ -327,7 +327,7 @@ public class AirlineManagement {
          System.out.println("6. View Reservation Details");
          System.out.println("7. View Plane Info");
          System.out.println("8. View Repairs By Technician");
-        //  System.out.println("9. View View Reservation Details");
+         System.out.println("9. View Repairs For Plane by Date Range");
         //  System.out.println("10. View View Reservation Details");
          // ...more management options as needed...
       }
@@ -359,7 +359,7 @@ public class AirlineManagement {
          case 6: if (role.equalsIgnoreCase("Manager")) ViewReservationDetails(esql); else notAuthorized(); break;
          case 7: if (role.equalsIgnoreCase("Manager")) ViewPlaneInfo(esql); else notAuthorized(); break;
          case 8: if (role.equalsIgnoreCase("Manager")) ViewRepairsByTechnician(esql); else notAuthorized(); break;
-        //  case 9: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
+         case 9: if (role.equalsIgnoreCase("Manager")) ViewRepairsForPlaneInRange(esql); else notAuthorized(); break;
         //  case 10: if (role.equalsIgnoreCase("Manager")) ViewOrderHistory(esql); else notAuthorized(); break;
          // Add more management functions as needed
 
@@ -973,6 +973,44 @@ public static void ViewPlaneInfo(AirlineManagement esql) {
             System.err.println(e.getMessage());
         }
     }
+
+    public static void ViewRepairsForPlaneInRange(AirlineManagement esql) {
+    try {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        String planeId = promptForValidPlaneID(in);
+        if (planeId == null) return;
+
+        System.out.println("Enter start date of range:");
+        String startDate = promptForValidDate(in);
+        if (startDate == null) return;
+
+        System.out.println("Enter end date of range:");
+        String endDate = promptForValidDate(in);
+        if (endDate == null) return;
+
+        String query =
+            "SELECT RepairDate, RepairCode " +
+            "FROM Repair " +
+            "WHERE PlaneID = '" + planeId + "' " +
+            "AND RepairDate BETWEEN DATE '" + startDate + "' AND DATE '" + endDate + "' " +
+            "ORDER BY RepairDate";
+
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+        if (result.size() == 0) {
+            System.out.println("No repairs for plane " + planeId + " between " + startDate + " and " + endDate + ".");
+        } else {
+            System.out.println("Repairs for " + planeId + " from " + startDate + " to " + endDate + ":");
+            System.out.println("| RepairDate  | RepairCode |");
+            System.out.println("|-------------|------------|");
+            for (List<String> row : result) {
+                System.out.printf("| %-11s | %-10s |\n", row.get(0), row.get(1));
+            }
+        }
+    } catch(Exception e) {
+        System.err.println(e.getMessage());
+    }
+}
+
 
 
    public static void SearchFlights(AirlineManagement esql) {
