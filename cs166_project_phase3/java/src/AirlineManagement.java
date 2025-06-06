@@ -647,11 +647,19 @@ public static String LogIn(AirlineManagement esql) {
             "   WHEN s.DayOfWeek = 'Sunday' THEN 7 " +
             "   ELSE 8 END";
 
-        int results = esql.executeQueryAndPrintResult(query);
+        List<List<String>> results = esql.executeQueryAndReturnResult(query);
 
-        if (results == 0) {
+        if (results.isEmpty()) {
             System.out.println("No weekly schedule found for flight " + flightNumber + ".");
+	    return;
         }
+
+	System.out.printf("| %-10s | %-12s | %-12s |\n", "Day", "DepartureTime", "ArrivalTime");
+	System.out.println("|------------|--------------|--------------|");
+
+	for (List<String> row : results) {
+	    System.out.printf("| %-10s | %-12s | %-12s |\n", row.get(0), row.get(1), row.get(2));
+	}
 
     } catch(Exception e) {
         System.err.println(e.getMessage());
