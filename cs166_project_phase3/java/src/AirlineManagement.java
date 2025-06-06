@@ -333,10 +333,10 @@ public class AirlineManagement {
       }
      
       if (role.equalsIgnoreCase("Customer")) {
-         System.out.println("10. Search Flights");
-         System.out.println("11. Make Reservation");
-         System.out.println("12. Find Ticket Cost");
-	       System.out.println("13. Find Airplane Type");
+         System.out.println("11. Search Flights");
+         System.out.println("12. Make Reservation");
+         System.out.println("13. Find Ticket Cost");
+	  System.out.println("14. Find Airplane Type");
          // ...more customer options...
       }
       if (role.equalsIgnoreCase("Pilot")) {
@@ -369,10 +369,10 @@ public class AirlineManagement {
          // Add more management functions as needed
           
          // Customer
-         case 10: if (role.equalsIgnoreCase("Customer")) SearchFlights(esql); else notAuthorized(); break;
-         case 11: if (role.equalsIgnoreCase("Customer")) MakeReservation(esql); else notAuthorized(); break;
-	       case 12: if (role.equalsIgnoreCase("Customer")) FindTicketCost(esql); else notAuthorized(); break;
-	       case 13: if (role.equalsIgnoreCase("Customer")) FindPlaneType(esql); else notAuthorized(); break;
+         case 11: if (role.equalsIgnoreCase("Customer")) SearchFlights(esql); else notAuthorized(); break;
+         case 12: if (role.equalsIgnoreCase("Customer")) MakeReservation(esql); else notAuthorized(); break;
+	 case 13: if (role.equalsIgnoreCase("Customer")) FindTicketCost(esql); else notAuthorized(); break;
+	 case 14: if (role.equalsIgnoreCase("Customer")) FindPlaneType(esql); else notAuthorized(); break;
 
          // Add more customer functions as needed
 
@@ -1288,14 +1288,18 @@ public static void ViewRepairs(AirlineManagement esql) {
 public static void AddRepairRecord(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter your TechnicianID: ");
-        String techId = in.readLine().trim();
-        System.out.print("Enter PlaneID: ");
-        String planeId = in.readLine().trim();
-        System.out.print("Enter Repair Code: ");
-        String repairCode = in.readLine().trim();
-        System.out.print("Enter Repair Date (yyyy-mm-dd): ");
-        String repairDate = in.readLine().trim();
+        String techId = promptForValidTechnicianID(in);
+        if (techId == null) return;
+
+        String planeId = promptForValidPlaneID(in);
+	if (planeId == null) return;
+
+        String repairCode = promptForValidRepairCode(in);
+	if (repairCode == null) return;
+
+        System.out.print("Enter Repair Date, ");
+        String repairDate = promptForValidDate(in);
+	if (repairDate == null) return;
 
         String insertRepair = "INSERT INTO Repair (PlaneID, RepairCode, RepairDate, TechnicianID) " +
                               "VALUES ('" + planeId + "', '" + repairCode + "', DATE '" + repairDate + "', '" + techId + "')";
@@ -1309,8 +1313,8 @@ public static void AddRepairRecord(AirlineManagement esql) {
 
 public static void ViewPilotRequests(AirlineManagement esql) {
     try {
-	System.out.print("Please enter a Pilot ID: ");
-	String pilotId = in.readLine().trim().toUpperCase();
+	String pilotId = promptForValidPilotID(in);
+	if (pilotId == null) return;
 
 	String query = String.format(
 		       	"SELECT RequestID, PlaneID, RepairCode, RequestDate " +
@@ -1670,8 +1674,8 @@ public static String promptForValidReservationID(BufferedReader in) throws IOExc
 
 public static void FindTicketCost(AirlineManagement esql) {
     try {
-	System.out.print("Please enter a Flight Number: ");
-	String flightNum = in.readLine().trim();
+	String flightNum = promptForValidFlightNumber(in);
+	if (flightNum == null) return;
 
 	String query = String.format(
 	    "SELECT TicketCost FROM FlightInstance WHERE FlightNumber = '%s' LIMIT 1",
@@ -1693,8 +1697,8 @@ public static void FindTicketCost(AirlineManagement esql) {
 
 public static void FindPlaneType(AirlineManagement esql) {
     try {
-	System.out.print("Please enter a Flight Number: ");
-	String flightNum = in.readLine().trim();
+	String flightNum = promptForValidFlightNumber(in);
+	if (flightNum == null) return;
 
 	String query = String.format(
 	    "SELECT p.Make, p.Model FROM Flight f JOIN Plane p ON f.PlaneID = p.PlaneID " +
