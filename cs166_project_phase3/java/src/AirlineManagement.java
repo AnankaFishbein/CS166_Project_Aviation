@@ -914,7 +914,7 @@ public static String LogIn(AirlineManagement esql) {
 
    public static void GetPlaneInformation(AirlineManagement esql) {
     try {
-	System.out.print("Enter Plane ID: ");
+	System.out.print("Enter Plane ID (PL001-PL005): ");
 	String planeID = in.readLine().trim();
 
 	String query = String.format(
