@@ -1331,9 +1331,9 @@ public static void ViewPilotRequests(AirlineManagement esql) {
 	}
 	else {
 	   System.out.println("Maintenance Requests for Pilot " + pilotId + ":");
-	   System.out.printf("%-12s $-10s $-15s %-12s\n", "RequestID", "PlaneID", "RepairCode", "RequestDate");
+	   System.out.printf("| %-12s | %-10s | %-15s | %-12s |\n", "RequestID", "PlaneID", "RepairCode", "RequestDate");
 	   for (List<String> row : result) {
-	        System.out.printf("%-12s %-10s %-15s %-12s\n",
+	        System.out.printf("| %-12s | %-10s | %-15s | %-12s|\n",
 		row.get(0), row.get(1), row.get(2), row.get(3));
 	   }
 	}
