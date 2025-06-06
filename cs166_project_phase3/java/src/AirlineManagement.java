@@ -1056,47 +1056,56 @@ public static void ViewFlightStatsInRange(AirlineManagement esql) {
    public static void SearchFlights(AirlineManagement esql) {
     try {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-         // Use the promptForValidCity helper method to ensure valid input
         String depCity = promptForValidCity(in, "Enter Departure City");
-         if (depCity == null) {
+        if (depCity == null) {
             System.out.println("Returning to main menu.");
             return;
-         }
-         String arrCity = promptForValidCity(in, "Enter Arrival City");
-         if (arrCity == null) {
+        }
+        String arrCity = promptForValidCity(in, "Enter Arrival City");
+        if (arrCity == null) {
             System.out.println("Returning to main menu.");
             return;
-         }
-
-        // Use the date validation helper
+        }
         String flightDate = promptForValidDate(in);
         if (flightDate == null) {
-            // User failed too many times
             System.out.println("Returning to main menu.");
             return;
         }
 
-        // Find matching flights for the date
+        // Build query for only the correct schedule (for the right day)
         String query =
-            "SELECT f.FlightNumber, fi.FlightDate, s.DepartureTime, s.ArrivalTime, fi.NumOfStops, " +
-            "ROUND(100.0 * SUM(CASE WHEN fi.DepartedOnTime THEN 1 ELSE 0 END) / COUNT(*), 2) AS OnTimePercent " +
+            "SELECT f.FlightNumber, f.DepartureCity, f.ArrivalCity, " +
+            "s.DepartureTime, s.ArrivalTime, fi.NumOfStops, " +
+            "CASE WHEN fi.DepartedOnTime IS NULL THEN 'N/A' " +
+            "     WHEN fi.DepartedOnTime THEN 'Yes' ELSE 'No' END AS DepartedOnTime, " +
+            "CASE WHEN fi.ArrivedOnTime IS NULL THEN 'N/A' " +
+            "     WHEN fi.ArrivedOnTime THEN 'Yes' ELSE 'No' END AS ArrivedOnTime " +
             "FROM Flight f " +
             "JOIN FlightInstance fi ON f.FlightNumber = fi.FlightNumber " +
-            "JOIN Schedule s ON s.FlightNumber = f.FlightNumber " +
+            "JOIN Schedule s ON f.FlightNumber = s.FlightNumber " +
+            "    AND s.DayOfWeek = TO_CHAR(fi.FlightDate, 'FMDay') " +
             "WHERE f.DepartureCity = '" + depCity + "' " +
-            "AND f.ArrivalCity = '" + arrCity + "' " +
-            "AND fi.FlightDate = DATE '" + flightDate + "' " +
-            "GROUP BY f.FlightNumber, fi.FlightDate, s.DepartureTime, s.ArrivalTime, fi.NumOfStops";
+            "  AND f.ArrivalCity = '" + arrCity + "' " +
+            "  AND fi.FlightDate = DATE '" + flightDate + "' " +
+            "ORDER BY s.DepartureTime";
 
-        int results = esql.executeQueryAndPrintResult(query);
-        if (results == 0) {
+        List<List<String>> result = esql.executeQueryAndReturnResult(query);
+        if (result.size() == 0) {
             System.out.println("No flights found for those criteria.");
+        } else {
+            System.out.println("| Flight# | From      | To        | DepTime  | ArrTime  | Stops | Departed On Time | Arrived On Time |");
+            System.out.println("|---------|-----------|-----------|----------|----------|-------|------------------|-----------------|");
+            for (List<String> row : result) {
+                System.out.printf("| %-7s | %-9s | %-9s | %-8s | %-8s | %-5s | %-16s | %-15s |\n",
+                    row.get(0), row.get(1), row.get(2), row.get(3), row.get(4), row.get(5), row.get(6), row.get(7));
+            }
         }
 
     } catch(Exception e) {
         System.err.println(e.getMessage());
     }
 }
+
 
 public static void MakeReservation(AirlineManagement esql) {
     try {
